@@ -11,20 +11,18 @@
 
 ## 1. Mission
 
-Prepare the secure infrastructure that allows P1, P2, P3 and P4 to build
-against reliable shared services.
+Prepare the infrastructure and shared service APIs that allow P1, P2, P3, and P4 to build against reliable shared cloud services.
 
-Immediate priority:
+Immediate P0 priority:
 
 ``` text
-PostgreSQL + pgvector
-Redis
-Object Storage
-Docker/networking
-Secrets
-Backups
-Security controls
-Monitoring
+1. Shared PostgreSQL + pgvector API (Neon DB / Supabase)
+2. Shared Redis Queue & Cache API (Upstash Redis)
+3. Shared S3-Compatible Object Storage (Supabase Storage / Cloudflare R2 / AWS S3)
+4. Environment variable & secrets distribution (.env)
+5. Docker Compose (Local / Offline fallback)
+6. Security controls & audit logging
+7. Monitoring & logging
 ```
 
 Blockchain/provenance comes after the core application path works.
@@ -62,15 +60,14 @@ Hyperledger Fabric
 
 ## 3. Services to Prepare Before Development
 
-### P0
+### P0 --- Immediate Shared Services (Cloud APIs + .env distribution)
 
 ``` text
-1. PostgreSQL
-2. pgvector
-3. MinIO / S3-compatible object storage
-4. Redis
-5. Docker Compose
-6. secrets/environment setup
+1. Neon DB (Serverless PostgreSQL with pgvector extension enabled)
+2. Upstash Redis (Serverless Redis via rediss:// connection string)
+3. Supabase Storage / Cloudflare R2 / AWS S3 (S3-compatible bucket for artifacts/sources)
+4. .env distribution with shared connection strings to all 5 teammates
+5. Docker Compose (maintained as local offline development environment)
 ```
 
 ### P1
@@ -91,19 +88,21 @@ Hyperledger Fabric
 
 ------------------------------------------------------------------------
 
-## 4. PostgreSQL
+## 4. PostgreSQL (Neon DB / Cloud PostgreSQL API)
 
-Provide a shared development PostgreSQL instance.
+Provide a shared development PostgreSQL instance so all 5 teammates share identical live sessions, documents, and CCO states.
+
+Recommended Primary Service: **Neon DB** (Serverless PostgreSQL)
+Fallback: Local Docker PostgreSQL container
 
 Requirements:
 
 ``` text
-PostgreSQL
-pgvector extension
-persistent volume
-database credentials
-network access from FastAPI/AI worker
-backup capability
+• PostgreSQL 16+
+• pgvector extension enabled (run: CREATE EXTENSION IF NOT EXISTS vector;)
+• SSL connection string: postgresql://user:password@ep-xyz.neon.tech/contentforge?sslmode=require
+• Shared connection string distributed in team .env
+• Network access from local FastAPI/AI workers
 ```
 
 P3 owns schema/migrations.
@@ -141,7 +140,11 @@ Actual large binary files do NOT belong in PostgreSQL.
 
 ## 6. pgvector
 
-Enable the vector extension.
+Enable the vector extension on the shared Neon DB instance:
+
+``` sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
 
 P1 owns:
 
@@ -152,14 +155,16 @@ retrieval strategy
 similarity logic
 ```
 
-P5 provides the reliable database service.
+P5 provisions the reliable database service with vector capability.
 
 ------------------------------------------------------------------------
 
-## 7. Object Storage --- REQUIRED
+## 7. Object Storage (Cloud S3 API / Supabase Storage / MinIO)
 
-Prepare MinIO for local/on-prem development or another S3-compatible
-service.
+Provision shared S3-compatible cloud object storage so uploaded PDFs and generated PPTX/PDF artifacts are globally accessible by all team members:
+
+Primary Services: **Supabase Storage** / **Cloudflare R2** / **AWS S3**
+Fallback: Local MinIO container via `docker-compose.yml`
 
 Use it for:
 

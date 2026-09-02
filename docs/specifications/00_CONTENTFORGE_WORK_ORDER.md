@@ -217,34 +217,30 @@ This is the most important cross-team dependency.
 
 ------------------------------------------------------------------------
 
-# 5. Phase 1 --- P5 Infrastructure First
+# 5. Phase 1 --- P5 Infrastructure First (Cloud APIs & Shared Services)
 
-P5 prepares:
+P5 provisions shared cloud service APIs so all 5 team members share identical live data (with Docker Compose as local offline fallback):
 
 ``` text
-PostgreSQL
-pgvector
-Redis
-MinIO/S3
-Docker Compose
-networking
-environment variables
-secrets
+1. Shared PostgreSQL + pgvector (Neon DB / Supabase)
+2. Shared Redis Queue & Cache (Upstash Redis)
+3. Shared S3 Object Storage (Supabase Storage / Cloudflare R2 / AWS S3 / MinIO)
+4. Environment Variables & Secrets (.env distribution)
+5. Docker Compose (Local/Offline Fallback)
 ```
 
-Minimum environment:
+Target Shared Team Services:
 
 ``` text
-frontend
-backend
-postgres
-redis
-minio
+• Database: Neon DB (Serverless PostgreSQL with pgvector extension enabled)
+• Job Queue / Cache: Upstash Redis (Serverless Redis via rediss:// connection string)
+• Artifact / Source Storage: Supabase Storage / AWS S3 / Cloudflare R2 / MinIO
+• Secrets Distribution: P5 fills .env credentials and shares with team
 ```
 
 Exit condition:
 
-> P3 can connect to all required services.
+> P3 (Backend) can connect to the shared database/Redis, and P1 (AI) can store/query embeddings in pgvector.
 
 ------------------------------------------------------------------------
 
@@ -672,20 +668,19 @@ P4 does not silently alter factual content.
 
 # 17. Work Order --- Detailed Sequence
 
-## STEP 1 --- P5
+## STEP 1 --- P5 (Provision Shared Cloud Service APIs)
 
 ``` text
-PostgreSQL
-pgvector
-Redis
-MinIO
-Docker
-Secrets
+Neon DB (PostgreSQL 16 + pgvector)
+Upstash (Serverless Redis)
+S3 / Supabase / MinIO (Object Storage)
+Secrets & .env distribution
+Docker Compose (Local/offline fallback)
 ```
 
 ### Exit condition
 
-P3 can connect to all services.
+P3 and P1 can connect to the shared database, Redis queue, and storage bucket from their local environments.
 
 ------------------------------------------------------------------------
 
@@ -947,18 +942,16 @@ Judge-facing story:
 
 # 22. Immediate Action List
 
-## P5 --- Start now
+## P5 --- Start now (Provision Cloud APIs & Shared Services)
 
 ``` text
-[ ] PostgreSQL
-[ ] pgvector
-[ ] Redis
-[ ] MinIO/S3
-[ ] Docker Compose
-[ ] .env.example
-[ ] secrets strategy
-[ ] network isolation
-[ ] backups
+[ ] Provision Neon DB (PostgreSQL + run CREATE EXTENSION vector;)
+[ ] Provision Upstash Redis instance (get rediss:// URL)
+[ ] Provision S3-compatible bucket (Supabase Storage / AWS S3 / MinIO)
+[ ] Distribute connection URLs to team via .env
+[ ] Maintain docker-compose.yml for local/offline development
+[ ] Secrets strategy & network isolation
+[ ] Backup capability
 ```
 
 ## P3 --- Start now
