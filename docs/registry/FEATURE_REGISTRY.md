@@ -11,6 +11,7 @@
 |---|---|---|---|---|---|
 | `FEAT-000` | Repository Scaffold & Base Setup | Shared | `develop` | ✅ Completed | 2026-09-02 |
 | `FEAT-001` | Streamline to Frontend, Backend & Docs | Shared | `develop` | ✅ Completed | 2026-09-02 |
+| `FEAT-002` | Separate Docs Hub into Specifications & Registry | Shared | `main` | ✅ Completed | 2026-09-02 |
 | `FEAT-BE-001`| Backend uv Init, Folder Layout & Health Route | P3 (Backend) | `develop` | ✅ Completed | 2026-09-02 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
 | `FEAT-AI-001`| *Example: CCO Extraction Pipeline* | P1 (AI) | `feature/ai-cco` | 📋 Planned | - |
@@ -19,6 +20,24 @@
 ---
 
 ## 📝 Detailed Feature Log
+
+### [FEAT-002] Separate Docs Hub into Specifications & Registry
+- **Role / Owner:** Shared (All Roles)
+- **Date Added:** 2026-09-02
+- **Branch:** `main` / `develop`
+- **Status:** ✅ Completed
+- **Description:**  
+  Separated the `docs/` hub into two organized subdirectories: `docs/specifications/` for official contracts, work orders, PRDs, and role engineering guides; and `docs/registry/` for working logs and feature tracking (`FEATURE_REGISTRY.md`). Updated all repository pointers and agent instructions accordingly.
+- **Touched / Created Files:**
+  - `docs/specifications/` (contracts, work orders, PRDs, P1-P5 specifications)
+  - `docs/registry/FEATURE_REGISTRY.md`, `docs/registry/README.md`
+  - `docs/README.md`, `README.md`, `CONTRIBUTING.md`, `.agents`, `AGENTS.md`
+  - `backend/README.md`, `frontend/README.md`
+- **How to View & Verify:**
+  - View `docs/`: `ls docs/` (shows `specifications/`, `registry/`, and `README.md`)
+  - Inspect registry: `cat docs/registry/FEATURE_REGISTRY.md`
+
+---
 
 ### [FEAT-BE-001] Backend uv Init, Package Structure & Health Route
 - **Role / Owner:** P3 (Backend API Engineer)

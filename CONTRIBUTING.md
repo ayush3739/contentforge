@@ -22,15 +22,9 @@ develop (Active integration branch)
 ```
 
 ### Rules
-1. **Never commit directly to `main` or `develop`.**
-2. Branch all new work from `develop`:
-   ```bash
-   git checkout develop
-   git pull origin develop
-   git checkout -b feature/<area>-<short-description>
-   ```
-3. Keep feature branches small, focused, and testable.
-4. Keep your branch up to date with `develop` by rebasing or merging `develop` frequently.
+1. Branch all new work from `develop` (or sync directly to `main` when instructed).
+2. Keep feature branches small, focused, and testable.
+3. Keep your branch up to date by rebasing or merging frequently.
 
 ---
 
@@ -49,12 +43,12 @@ Use clear, structured commit messages adhering to Conventional Commits:
 
 ## 🔄 3. Pull Request (PR) Checklist
 
-Before submitting a Pull Request into `develop`:
+Before submitting a Pull Request:
 
 - [ ] Code is placed in the proper package (`frontend/`, `backend/`, or `docs/`).
-- [ ] Registered the new feature/change in [`docs/FEATURE_REGISTRY.md`](./docs/FEATURE_REGISTRY.md).
+- [ ] Registered the new feature/change in [`docs/registry/FEATURE_REGISTRY.md`](./docs/registry/FEATURE_REGISTRY.md).
 - [ ] No secrets or `.env` files are tracked in Git.
-- [ ] Code passes local tests and linting.
+- [ ] Code passes local tests (`uv run pytest`) and linting.
 - [ ] At least one teammate has reviewed and approved the PR.
 
 ---
@@ -68,5 +62,5 @@ A feature is **not done** when it only runs on your local machine. It is done wh
 3. **Errors are gracefully handled** without crashing the application.
 4. **Database state is properly persisted** where required.
 5. **Frontend integration works** where applicable.
-6. **Feature Registry is updated** in `docs/FEATURE_REGISTRY.md` with instructions on how to view/verify.
+6. **Feature Registry is updated** in `docs/registry/FEATURE_REGISTRY.md` with instructions on how to view/verify.
 7. **Another teammate can pull the branch and run it**.

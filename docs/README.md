@@ -1,71 +1,48 @@
-# ContentForge AI — Documentation & Specifications (`docs/`)
+# ContentForge AI — Documentation Hub (`docs/`)
 
-Welcome to the centralized documentation directory for **ContentForge AI** (SIH 2026 — SIH26154 | Elite Coders).  
-All architecture guidelines, integration contracts, role specifications, PRDs, and the team feature registry live in this folder.
-
----
-
-## 📚 Core Documents Index
-
-| Document | Title / Scope | Key Contents |
-|---|---|---|
-| **[`00_CONTENTFORGE_WORK_ORDER.md`](./00_CONTENTFORGE_WORK_ORDER.md)** | **Team Work Order & Sequence** | Build order across the 5 team members, handoff matrix, exact PPTX workflow, and definitions of done. |
-| **[`00_TEAM_INTEGRATION_CONTRACT.md`](./00_TEAM_INTEGRATION_CONTRACT.md)** | **Shared Engineering Contract** | Foundational data models, API base `/api/v1`, CCO structure, RBAC roles, audit logging, and core principles. |
-| **[`ContentForge_AI_Frontend_PRD.md`](./ContentForge_AI_Frontend_PRD.md)** | **Frontend PRD & Specification** | Complete UI layouts, page wireframes, state management, component tree, API integration, and hackathon demo flow. |
-| **[`01_P1_AI_ENGINEER.md`](./01_P1_AI_ENGINEER.md)** | **AI Pipeline & Intelligence Specification** | Document understanding, CCO construction, RAG/retrieval, transformation planner, prompt compiler, structured JSON generation, verification & revision. |
-| **[`03_P3_BACKEND_API.md`](./03_P3_BACKEND_API.md)** | **FastAPI Backend & Persistence Specification** | Application APIs, PostgreSQL + pgvector schema, JWT/RBAC middleware, job orchestration, object storage integration, and audit logging. |
-| **[`04_P4_OUTPUT_ARTIFACT.md`](./04_P4_OUTPUT_ARTIFACT.md)** | **Artifact & Rendering Specification** | Transformation recipes, PPTX/PDF/DOCX/HTML renderers, checksum calculation, and artifact preview/export. |
-| **[`05_P5_CLOUD_CYBER_BLOCKCHAIN.md`](./05_P5_CLOUD_CYBER_BLOCKCHAIN.md)** | **Cloud, Cyber & Blockchain Specification** | Docker services, security infrastructure, secret management, prompt injection defenses, and Hyperledger Fabric provenance. |
-| **[`FEATURE_REGISTRY.md`](./FEATURE_REGISTRY.md)** | **Live Feature Registry & Tracker** | Single source of truth for all implemented and in-progress features with verification steps. |
+Welcome to the centralized documentation hub for **ContentForge AI** (SIH 2026 — SIH26154 | Elite Coders).  
+Documentation is organized into two distinct sections: **Project Specifications** and **Working Logs & Registry**.
 
 ---
 
-## 🏛️ System Architecture in One View
+## 📁 Documentation Organization
 
 ```text
-                         USERS / OPERATOR
-                                │
-                                ▼
-                     ┌─────────────────────┐
-                     │   FRONTEND (P2)     │
-                     │   Next.js / React   │
-                     └──────────┬──────────┘
-                                │ HTTPS / JSON
-                                ▼
-                     ┌─────────────────────┐
-                     │    BACKEND (P3)     │
-                     │    FastAPI Core     │
-                     └──────┬─────┬────────┘
-                            │     │
-               ┌────────────┘     └────────────┐
-               ▼                               ▼
-    ┌──────────────────────┐        ┌──────────────────────┐
-    │   AI PIPELINE (P1)   │        │ ARTIFACT ENGINE (P4) │
-    │                      │        │                      │
-    │ Understand & Ingest  │        │ Recipes              │
-    │ CCO & Evidence Index │        │ PPTX Renderer        │
-    │ Planner & Prompts    │        │ PDF / DOCX / HTML    │
-    │ Generation & Verify  │        │ Checksum (SHA-256)   │
-    └──────────┬───────────┘        └──────────┬───────────┘
-               │                               │
-               └──────────────┬────────────────┘
-                              ▼
-              ┌────────────────────────────────┐
-              │     DATA & SECURITY LAYER      │
-              │ PostgreSQL + pgvector (P3/P5)  │
-              │ MinIO / S3 Object Storage (P5) │
-              │ Redis Job Queue (P3/P5)        │
-              │ Hyperledger Provenance (P5)    │
-              └────────────────────────────────┘
+docs/
+├── specifications/          # Official project documents, contracts, work orders & PRDs
+│   ├── 00_CONTENTFORGE_WORK_ORDER.md
+│   ├── 00_TEAM_INTEGRATION_CONTRACT.md
+│   ├── ContentForge_AI_Frontend_PRD.md
+│   ├── 01_P1_AI_ENGINEER.md
+│   ├── 03_P3_BACKEND_API.md
+│   ├── 04_P4_OUTPUT_ARTIFACT.md
+│   ├── 05_P5_CLOUD_CYBER_BLOCKCHAIN.md
+│   └── README.md
+│
+├── registry/                # Live feature registry and working logs
+│   ├── FEATURE_REGISTRY.md  # Single source of truth for implemented features & verification steps
+│   └── README.md
+│
+└── README.md                # This directory index
 ```
 
 ---
 
-## 🎯 Core Non-Negotiable Rules
+## 📑 1. Project Specifications (`docs/specifications/`)
 
-1. **FastAPI is the Application Front Door**: Frontend talks exclusively to FastAPI via `/api/v1`.
-2. **CCO is the Semantic Ground Truth**: One source document yields one canonical CCO version. All generated outputs reference this version.
-3. **Structured AI JSON**: P1 produces validated, renderer-neutral JSON. P1 does not generate binary PPTX/PDF.
-4. **Renderer Integrity**: P4 transforms structured AI JSON into PPTX/DOCX/PDF/HTML without fabricating or altering factual content.
-5. **Off-Chain Ledger**: Raw files and source documents stay off-chain in object storage; only SHA-256 checksums are anchored to the Hyperledger ledger.
-6. **Server-Side Security**: RBAC (`analyst`, `reviewer`, `admin`) and file validation are enforced on the backend.
+| Document | Scope |
+|---|---|
+| **[`specifications/00_CONTENTFORGE_WORK_ORDER.md`](./specifications/00_CONTENTFORGE_WORK_ORDER.md)** | Master team execution sequence, handoff matrix, and PPTX workflow. |
+| **[`specifications/00_TEAM_INTEGRATION_CONTRACT.md`](./specifications/00_TEAM_INTEGRATION_CONTRACT.md)** | Shared engineering contract across all developers (DB, API, CCO, RBAC). |
+| **[`specifications/ContentForge_AI_Frontend_PRD.md`](./specifications/ContentForge_AI_Frontend_PRD.md)** | Complete UI wireframes, page layouts, and client specifications. |
+| **[`specifications/01_P1_AI_ENGINEER.md`](./specifications/01_P1_AI_ENGINEER.md)** | AI intelligence pipeline: CCO extraction, RAG, structured generation, verification. |
+| **[`specifications/03_P3_BACKEND_API.md`](./specifications/03_P3_BACKEND_API.md)** | FastAPI backend APIs, PostgreSQL+pgvector, JWT/RBAC, and job orchestration. |
+| **[`specifications/04_P4_OUTPUT_ARTIFACT.md`](./specifications/04_P4_OUTPUT_ARTIFACT.md)** | Transformation recipes, PPTX/PDF/DOCX renderers, and SHA-256 checksums. |
+| **[`specifications/05_P5_CLOUD_CYBER_BLOCKCHAIN.md`](./specifications/05_P5_CLOUD_CYBER_BLOCKCHAIN.md)** | Security controls, Docker setup, audit logging, and Hyperledger provenance. |
+
+---
+
+## 📋 2. Working Logs & Feature Registry (`docs/registry/`)
+
+- **[`registry/FEATURE_REGISTRY.md`](./registry/FEATURE_REGISTRY.md)**:  
+  **Mandatory Tracker:** Whenever any teammate or AI agent adds, modifies, or finishes a feature, they **must** log the Feature ID, description, touched files, and verification commands in this registry so teammates can inspect and verify their work.

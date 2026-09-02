@@ -6,37 +6,38 @@ ContentForge AI converts one source document into multiple trustworthy, audience
 
 ---
 
-## 📁 Streamlined Repository Structure
-
-The repository is organized into two primary application packages and a unified documentation hub:
+## 📁 Repository Structure
 
 ```text
 contentforge/
-├── frontend/         # P2: Next.js / React UI (Operator workspace, CCO viewer, Review queue, Artifact preview)
-├── backend/          # P1, P3, P4, P5: FastAPI Core, AI Pipeline, Artifact Renderers, DB & Storage
-├── docs/             # Centralized Team Documentation, Work Orders, Contracts, PRDs & Feature Registry
-├── docker-compose.yml# Shared local infrastructure (PostgreSQL+pgvector, Redis, MinIO)
-├── .env.example      # Master environment variable template
-├── .gitignore        # Standard Git ignore rules
-├── .agents           # Operating guidelines and feature registry protocol for AI agents
-├── AGENTS.md         # Visible agent operating guidelines
-├── CONTRIBUTING.md   # Git branching strategy, PR checklist, and Definition of Done
-└── README.md         # This file
+├── frontend/                # P2: Next.js / React UI (Operator workspace, CCO viewer, Review queue, Artifact preview)
+├── backend/                 # P1, P3, P4, P5: FastAPI Core, AI Pipeline, Artifact Renderers, DB & Storage
+├── docs/                    # Centralized Team Documentation Hub
+│   ├── specifications/      # Official project documents, contracts, work orders & PRDs
+│   └── registry/            # Live feature registry (FEATURE_REGISTRY.md) & working logs
+├── docker-compose.yml       # Shared local infrastructure (PostgreSQL+pgvector, Redis, MinIO)
+├── .env.example             # Master environment variable template
+├── .gitignore               # Standard Git ignore rules
+├── .agents                  # Operating guidelines and feature registry protocol for AI agents
+├── AGENTS.md                # Visible agent operating guidelines
+├── CONTRIBUTING.md          # Git branching strategy, PR checklist, and Definition of Done
+└── README.md                # This file
 ```
 
 ---
 
 ## 👥 Five-Person Team Ownership
 
-| Role | Engineer | Workspace | Primary Ownership | Master Reference in `docs/` |
+| Role | Engineer | Workspace | Primary Ownership | Master Reference in `docs/specifications/` |
 |---|---|---|---|---|
-| **P1** | AI Engineer | [`backend/app/ai/`](./backend) | CCO creation, RAG, prompt compilation, structured generation, grounding verification | [`docs/01_P1_AI_ENGINEER.md`](./docs/01_P1_AI_ENGINEER.md) |
-| **P2** | Frontend Engineer | [`frontend/`](./frontend) | Next.js/React operator UI, review queue, artifact viewers, admin screens | [`docs/ContentForge_AI_Frontend_PRD.md`](./docs/ContentForge_AI_Frontend_PRD.md) |
-| **P3** | Backend Engineer | [`backend/`](./backend) | FastAPI public APIs, PostgreSQL models, RBAC, job orchestration, persistence | [`docs/03_P3_BACKEND_API.md`](./docs/03_P3_BACKEND_API.md) |
-| **P4** | Artifact Engineer | [`backend/app/renderers/`](./backend) | Transformation recipes, PPTX/PDF/DOCX/HTML renderers, SHA-256 checksums | [`docs/04_P4_OUTPUT_ARTIFACT.md`](./docs/04_P4_OUTPUT_ARTIFACT.md) |
-| **P5** | Cloud/Cyber/Blockchain | [`backend/`, `docker-compose.yml`](./) | Infrastructure, Docker, storage, security controls, audit, Hyperledger provenance | [`docs/05_P5_CLOUD_CYBER_BLOCKCHAIN.md`](./docs/05_P5_CLOUD_CYBER_BLOCKCHAIN.md) |
+| **P1** | AI Engineer | [`backend/app/ai/`](./backend) | CCO creation, RAG, prompt compilation, structured generation, grounding verification | [`docs/specifications/01_P1_AI_ENGINEER.md`](./docs/specifications/01_P1_AI_ENGINEER.md) |
+| **P2** | Frontend Engineer | [`frontend/`](./frontend) | Next.js/React operator UI, review queue, artifact viewers, admin screens | [`docs/specifications/ContentForge_AI_Frontend_PRD.md`](./docs/specifications/ContentForge_AI_Frontend_PRD.md) |
+| **P3** | Backend Engineer | [`backend/`](./backend) | FastAPI public APIs, PostgreSQL models, RBAC, job orchestration, persistence | [`docs/specifications/03_P3_BACKEND_API.md`](./docs/specifications/03_P3_BACKEND_API.md) |
+| **P4** | Artifact Engineer | [`backend/app/renderers/`](./backend) | Transformation recipes, PPTX/PDF/DOCX/HTML renderers, SHA-256 checksums | [`docs/specifications/04_P4_OUTPUT_ARTIFACT.md`](./docs/specifications/04_P4_OUTPUT_ARTIFACT.md) |
+| **P5** | Cloud/Cyber/Blockchain | [`backend/`, `docker-compose.yml`](./) | Infrastructure, Docker, storage, security controls, audit, Hyperledger provenance | [`docs/specifications/05_P5_CLOUD_CYBER_BLOCKCHAIN.md`](./docs/specifications/05_P5_CLOUD_CYBER_BLOCKCHAIN.md) |
 
-> 📖 **Team Work Order & Contract:** All team members must review [`docs/00_CONTENTFORGE_WORK_ORDER.md`](./docs/00_CONTENTFORGE_WORK_ORDER.md) and [`docs/00_TEAM_INTEGRATION_CONTRACT.md`](./docs/00_TEAM_INTEGRATION_CONTRACT.md).
+> 📖 **Team Work Order & Contract:** All team members must review [`docs/specifications/00_CONTENTFORGE_WORK_ORDER.md`](./docs/specifications/00_CONTENTFORGE_WORK_ORDER.md) and [`docs/specifications/00_TEAM_INTEGRATION_CONTRACT.md`](./docs/specifications/00_TEAM_INTEGRATION_CONTRACT.md).  
+> 📋 **Feature Tracker:** View and log all feature progress in [`docs/registry/FEATURE_REGISTRY.md`](./docs/registry/FEATURE_REGISTRY.md).
 
 ---
 
@@ -97,12 +98,10 @@ docker-compose up -d db redis minio
 ### 3. Start Backend
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000
 ```
-Swagger UI available at `http://localhost:8000/docs`.
+- Swagger UI available at: [http://localhost:8000/docs](http://localhost:8000/docs)
+- Health check route: [http://localhost:8000/health](http://localhost:8000/health)
 
 ### 4. Start Frontend
 ```bash
@@ -111,19 +110,6 @@ npm install
 npm run dev
 ```
 Application accessible at `http://localhost:3000`.
-
----
-
-## 🌿 Git Branching Strategy
-
-- `main` — Stable production releases only.
-- `develop` — Shared team integration branch.
-- Feature branches branched from `develop`:
-  - `feature/frontend-<feature-name>` (Frontend UI)
-  - `feature/backend-<feature-name>` (FastAPI & DB)
-  - `feature/ai-<feature-name>` (AI Pipeline)
-  - `feature/renderer-<feature-name>` (Artifact Renderers)
-  - `feature/infra-<feature-name>` (Infra, Security & Provenance)
 
 ---
 
@@ -136,4 +122,4 @@ Application accessible at `http://localhost:3000`.
 5. **Untrusted Uploads**: Source documents are treated as untrusted data with strict prompt boundaries.
 6. **Server-Side Security**: RBAC (`analyst`, `reviewer`, `admin`) is strictly validated on the backend.
 7. **Off-Chain Ledger**: Raw files remain in object storage; only SHA-256 hashes are anchored to Hyperledger Fabric.
-8. **Live Feature Registry**: Whenever adding a feature, update [`docs/FEATURE_REGISTRY.md`](./docs/FEATURE_REGISTRY.md).
+8. **Live Feature Registry**: Whenever adding a feature, update [`docs/registry/FEATURE_REGISTRY.md`](./docs/registry/FEATURE_REGISTRY.md).

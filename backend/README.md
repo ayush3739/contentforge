@@ -7,10 +7,10 @@
 > - **P5:** Security & Storage Integration (Audit Logging, MinIO/S3, Blockchain Provenance Anchoring)  
 >  
 > **Master Specifications:**  
-> - [`docs/00_CONTENTFORGE_WORK_ORDER.md`](../docs/00_CONTENTFORGE_WORK_ORDER.md)  
-> - [`docs/03_P3_BACKEND_API.md`](../docs/03_P3_BACKEND_API.md)  
-> - [`docs/01_P1_AI_ENGINEER.md`](../docs/01_P1_AI_ENGINEER.md)  
-> - [`docs/04_P4_OUTPUT_ARTIFACT.md`](../docs/04_P4_OUTPUT_ARTIFACT.md)
+> - [`docs/specifications/00_CONTENTFORGE_WORK_ORDER.md`](../docs/specifications/00_CONTENTFORGE_WORK_ORDER.md)  
+> - [`docs/specifications/03_P3_BACKEND_API.md`](../docs/specifications/03_P3_BACKEND_API.md)  
+> - [`docs/specifications/01_P1_AI_ENGINEER.md`](../docs/specifications/01_P1_AI_ENGINEER.md)  
+> - [`docs/specifications/04_P4_OUTPUT_ARTIFACT.md`](../docs/specifications/04_P4_OUTPUT_ARTIFACT.md)
 
 ---
 

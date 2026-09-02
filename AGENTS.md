@@ -12,7 +12,8 @@ The repository is structured into two main packages and a shared documentation h
 
 - **`frontend/`** — Owned by **P2 (Frontend Engineer)** (Next.js / React UI)
 - **`backend/`** — Owned jointly by **P1 (AI)**, **P3 (Backend API/DB)**, **P4 (Renderers)**, and **P5 (Storage/Security)**
-- **`docs/`** — Shared workspace for specifications, work orders, contracts, and the live feature registry
+- **`docs/specifications/`** — Official project specifications, work orders, contracts, and PRDs
+- **`docs/registry/`** — Live feature registry (`FEATURE_REGISTRY.md`) and working logs
 
 ---
 
@@ -20,7 +21,7 @@ The repository is structured into two main packages and a shared documentation h
 
 Whenever adding or changing any feature or capability in this repository:
 
-1. You **MUST** update [`docs/FEATURE_REGISTRY.md`](./docs/FEATURE_REGISTRY.md).
+1. You **MUST** update [`docs/registry/FEATURE_REGISTRY.md`](./docs/registry/FEATURE_REGISTRY.md).
 2. Record the Feature ID, title, status, description, files touched, and explicit instructions for how someone else can view and verify the feature.
 3. This ensures all teammates have complete visibility into ongoing and completed work.
 
@@ -38,7 +39,7 @@ Whenever adding or changing any feature or capability in this repository:
 
 ## 4. Git Flow
 
-- Always branch off `develop`.
-- Name branches `feature/<area>-<feature-name>` (e.g., `feature/frontend-cco-viewer`, `feature/backend-session-api`).
+- Branch off `develop` (or sync directly to `main` as instructed by the repository owner).
+- Name branches `feature/<area>-<feature-name>`.
 - Commit with conventional messages (e.g., `feat(ui): add cco viewer table`).
 - Never commit `.env` or sensitive credentials.
