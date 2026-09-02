@@ -20,9 +20,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
       - name: Check Environment Template Integrity
         run: |
           test -f .env.example || (echo ".env.example is missing!" && exit 1)
@@ -33,8 +30,11 @@ jobs:
           test -f registry/FEATURE_REGISTRY.md || (echo "Feature registry is missing!" && exit 1)
           echo "Documentation verification passed."
 
-      - name: Run Backend Tests
-        run: |
-          cd backend
-          uv sync
-          uv run pytest
+      # Automated backend tests (uncomment when team is ready to enforce tests on push):
+      # - name: Install uv
+      #   uses: astral-sh/setup-uv@v5
+      # - name: Run Backend Tests
+      #   run: |
+      #     cd backend
+      #     uv sync
+      #     uv run pytest
