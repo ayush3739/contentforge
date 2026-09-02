@@ -11,14 +11,48 @@
 |---|---|---|---|---|---|
 | `FEAT-000` | Repository Scaffold & Base Setup | Shared | `develop` | ✅ Completed | 2026-09-02 |
 | `FEAT-001` | Streamline to Frontend, Backend & Docs | Shared | `develop` | ✅ Completed | 2026-09-02 |
+| `FEAT-BE-001`| Backend uv Init, Folder Layout & Health Route | P3 (Backend) | `develop` | ✅ Completed | 2026-09-02 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
-| `FEAT-BE-001`| *Example: FastAPI Auth & Session APIs* | P3 (Backend) | `feature/backend-auth` | 📋 Planned | - |
 | `FEAT-AI-001`| *Example: CCO Extraction Pipeline* | P1 (AI) | `feature/ai-cco` | 📋 Planned | - |
 | `FEAT-RN-001`| *Example: Executive Summary HTML Renderer*| P4 (Renderers)| `feature/renderer-exec`| 📋 Planned | - |
 
 ---
 
 ## 📝 Detailed Feature Log
+
+### [FEAT-BE-001] Backend uv Init, Package Structure & Health Route
+- **Role / Owner:** P3 (Backend API Engineer)
+- **Date Added:** 2026-09-02
+- **Branch:** `develop` / `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  Initialized the Python backend project with `uv` (`pyproject.toml` with FastAPI, Uvicorn, Pytest, HTTPX), established initial package directories with purpose documentation (`app/api/v1/`, `app/ai/`, `app/renderers/`, `app/core/`, `app/models/`, `app/schemas/`, `app/services/`, `app/jobs/`, `app/storage/`, `app/audit/`, `migrations/`, `tests/`), created `app/main.py` with CORS and health check routes (`GET /health`, `GET /api/v1/health`), and verified functionality with automated unit tests.
+- **Touched / Created Files:**
+  - `backend/pyproject.toml`, `backend/.python-version`, `backend/uv.lock`
+  - `backend/app/main.py` (FastAPI app with `/health` and `/api/v1/health`)
+  - `backend/app/__init__.py`
+  - `backend/app/api/__init__.py`, `backend/app/api/v1/__init__.py`
+  - `backend/app/ai/__init__.py`, `backend/app/renderers/__init__.py`
+  - `backend/app/core/__init__.py`, `backend/app/models/__init__.py`
+  - `backend/app/schemas/__init__.py`, `backend/app/services/__init__.py`
+  - `backend/app/jobs/__init__.py`, `backend/app/storage/__init__.py`, `backend/app/audit/__init__.py`
+  - `backend/migrations/README.md`
+  - `backend/tests/__init__.py`, `backend/tests/test_health.py`
+- **How to View & Verify:**
+  - Run automated tests:
+    ```bash
+    cd backend
+    uv run pytest
+    ```
+  - Start the backend server:
+    ```bash
+    cd backend
+    uv run uvicorn app.main:app --reload --port 8000
+    ```
+  - View Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+  - Query health route: [http://localhost:8000/health](http://localhost:8000/health) or `curl http://localhost:8000/health` (Expected output: `{"status":"healthy","service":"backend","database":"ready","version":"0.1.0"}`)
+
+---
 
 ### [FEAT-001] Streamline Repository to Frontend, Backend & Docs
 - **Role / Owner:** Shared (All Roles)
