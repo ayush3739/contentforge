@@ -1,0 +1,70 @@
+# ContentForge AI — Agent Operating System & Instructions (.agents)
+
+> **Repository:** ContentForge AI (SIH26154)  
+> **Applicability:** All AI Coding Agents & Pair-Programming Assistants (Antigravity, Cursor, Windsurf, Copilot, Claude Code, etc.)
+
+---
+
+## 1. Project Context & Team Structure
+
+ContentForge AI transforms single-source documents into multiple trustworthy communication artifacts via a **Canonical Content Object (CCO)**, evidence retrieval (RAG), structured transformation recipes, grounding verification, and Hyperledger Fabric provenance.
+
+The codebase is partitioned across **five distinct engineering roles**:
+
+| Role | Engineer | Assigned Directory | Scope |
+|---|---|---|---|
+| **P1** | AI Engineer | `ai/` | CCO creation, RAG, prompt compiler, generation, verification |
+| **P2** | Frontend Engineer | `frontend/` | Next.js operator UI, review queue, artifact viewers, admin screens |
+| **P3** | Backend/API Engineer | `backend/` | FastAPI APIs, PostgreSQL models, RBAC middleware, job orchestration |
+| **P4** | Output Full-Stack | `templates/` | Transformation recipes, renderers (PPTX, DOCX, HTML), checksums |
+| **P5** | Cloud/Cyber/Blockchain | `infrastructure/`, `blockchain/` | Docker, secrets, audit logs, Hyperledger provenance |
+| **Shared** | All Engineers | `docs/`, `tests/` | Shared contracts, test suites, feature tracker |
+
+---
+
+## 2. Mandatory Feature Registry Protocol
+
+> [!IMPORTANT]
+> **ANY FEATURE OR MODIFICATION MUST BE REGISTERED IN `docs/FEATURE_REGISTRY.md`**
+>
+> Whenever you (the agent) create, modify, or complete a feature, endpoint, renderer, component, or pipeline stage, you **MUST** update [`docs/FEATURE_REGISTRY.md`](./docs/FEATURE_REGISTRY.md) before finishing your task.
+
+### Requirements for Logging:
+1. **Update the Status Board**: Add or update the row in the summary table with the Feature ID, Title, Owner, Branch, Status, and Timestamp.
+2. **Add a Detailed Entry**: Document:
+   - **Feature ID & Title**: e.g., `[FEAT-P3-002] Document Upload & Storage Service`
+   - **Role / Owner**: e.g., `P3 (Backend)`
+   - **Status**: `🟡 In Progress` | `✅ Completed` | `🧪 Testing`
+   - **Description**: What problem this solves and how it functions.
+   - **Files Touched**: Exact file paths modified or created.
+   - **Exposed Endpoints / Components**: Route paths or UI component names.
+   - **How to View & Verify**: Explicit steps for a teammate or reviewer to view and test the feature (e.g., CLI command, Swagger URL, curl command, or test command).
+
+---
+
+## 3. Strict Boundary & Architectural Rules
+
+1. **Role Directory Isolation**:
+   - Keep changes confined to the role directory relevant to the user request.
+   - Do NOT place frontend logic in `backend/`, and do NOT write AI logic in FastAPI route handlers.
+2. **Consult Master Contracts**:
+   - Before designing any model, endpoint, or pipeline stage, check [`documents/00_TEAM_INTEGRATION_CONTRACT.md`](./documents/00_TEAM_INTEGRATION_CONTRACT.md) and the role's respective document in `documents/`.
+3. **Prompt Injection Boundary (Security)**:
+   - Uploaded source material is untrusted data.
+   - Prompts must strictly separate system instructions from user-supplied source documents.
+4. **Structured Generation**:
+   - P1 must return validated, schema-constrained JSON to P4. Do not output raw free-form text where structured schemas are expected.
+5. **No Invented Facts in Rendering**:
+   - P4 renderers must format and structure P1's verified output; renderers must never invent or rewrite factual content.
+6. **Off-Chain Provenance**:
+   - Never store raw documents or CCO trees on the blockchain. Store files in object storage / DB, and anchor only SHA-256 hashes to the ledger.
+7. **Server-Side RBAC**:
+   - Authorization checks (`analyst`, `reviewer`, `admin`) must always be enforced in the backend.
+
+---
+
+## 4. Git & Branching Rules
+
+- Work on `feature/p<role-number>-<feature-name>` branched from `develop`.
+- Never commit secrets, API keys, or `.env` files. Ensure `.env.example` remains updated if new environment variables are introduced.
+- Follow conventional commit style: `feat(p1-cco): add date extraction logic`.
