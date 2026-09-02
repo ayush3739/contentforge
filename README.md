@@ -12,9 +12,10 @@ ContentForge AI converts one source document into multiple trustworthy, audience
 contentforge/
 ├── frontend/                # P2: Next.js / React UI (Operator workspace, CCO viewer, Review queue, Artifact preview)
 ├── backend/                 # P1, P3, P4, P5: FastAPI Core, AI Pipeline, Artifact Renderers, DB & Storage
-├── docs/                    # Centralized Team Documentation Hub
-│   ├── specifications/      # Official project documents, contracts, work orders & PRDs
-│   └── registry/            # Live feature registry (FEATURE_REGISTRY.md) & working logs
+├── docs/                    # Project Documentation Hub
+│   ├── prds/                # Product Requirements Documents (PRDs)
+│   └── specifications/      # Official engineering contracts, work orders & role architecture specs
+├── registry/                # Live feature registry (FEATURE_REGISTRY.md) & working logs
 ├── docker-compose.yml       # Shared local infrastructure (PostgreSQL+pgvector, Redis, MinIO)
 ├── .env.example             # Master environment variable template
 ├── .gitignore               # Standard Git ignore rules
@@ -28,16 +29,16 @@ contentforge/
 
 ## 👥 Five-Person Team Ownership
 
-| Role | Engineer | Workspace | Primary Ownership | Master Reference in `docs/specifications/` |
+| Role | Engineer | Workspace | Primary Ownership | Master Reference |
 |---|---|---|---|---|
 | **P1** | AI Engineer | [`backend/app/ai/`](./backend) | CCO creation, RAG, prompt compilation, structured generation, grounding verification | [`docs/specifications/01_P1_AI_ENGINEER.md`](./docs/specifications/01_P1_AI_ENGINEER.md) |
-| **P2** | Frontend Engineer | [`frontend/`](./frontend) | Next.js/React operator UI, review queue, artifact viewers, admin screens | [`docs/specifications/ContentForge_AI_Frontend_PRD.md`](./docs/specifications/ContentForge_AI_Frontend_PRD.md) |
+| **P2** | Frontend Engineer | [`frontend/`](./frontend) | Next.js/React operator UI, review queue, artifact viewers, admin screens | [`docs/prds/ContentForge_AI_Frontend_PRD.md`](./docs/prds/ContentForge_AI_Frontend_PRD.md) |
 | **P3** | Backend Engineer | [`backend/`](./backend) | FastAPI public APIs, PostgreSQL models, RBAC, job orchestration, persistence | [`docs/specifications/03_P3_BACKEND_API.md`](./docs/specifications/03_P3_BACKEND_API.md) |
 | **P4** | Artifact Engineer | [`backend/app/renderers/`](./backend) | Transformation recipes, PPTX/PDF/DOCX/HTML renderers, SHA-256 checksums | [`docs/specifications/04_P4_OUTPUT_ARTIFACT.md`](./docs/specifications/04_P4_OUTPUT_ARTIFACT.md) |
 | **P5** | Cloud/Cyber/Blockchain | [`backend/`, `docker-compose.yml`](./) | Infrastructure, Docker, storage, security controls, audit, Hyperledger provenance | [`docs/specifications/05_P5_CLOUD_CYBER_BLOCKCHAIN.md`](./docs/specifications/05_P5_CLOUD_CYBER_BLOCKCHAIN.md) |
 
 > 📖 **Team Work Order & Contract:** All team members must review [`docs/specifications/00_CONTENTFORGE_WORK_ORDER.md`](./docs/specifications/00_CONTENTFORGE_WORK_ORDER.md) and [`docs/specifications/00_TEAM_INTEGRATION_CONTRACT.md`](./docs/specifications/00_TEAM_INTEGRATION_CONTRACT.md).  
-> 📋 **Feature Tracker:** View and log all feature progress in [`docs/registry/FEATURE_REGISTRY.md`](./docs/registry/FEATURE_REGISTRY.md).
+> 📋 **Feature Tracker:** View and log all feature progress in [`registry/FEATURE_REGISTRY.md`](./registry/FEATURE_REGISTRY.md).
 
 ---
 
@@ -122,4 +123,4 @@ Application accessible at `http://localhost:3000`.
 5. **Untrusted Uploads**: Source documents are treated as untrusted data with strict prompt boundaries.
 6. **Server-Side Security**: RBAC (`analyst`, `reviewer`, `admin`) is strictly validated on the backend.
 7. **Off-Chain Ledger**: Raw files remain in object storage; only SHA-256 hashes are anchored to Hyperledger Fabric.
-8. **Live Feature Registry**: Whenever adding a feature, update [`docs/registry/FEATURE_REGISTRY.md`](./docs/registry/FEATURE_REGISTRY.md).
+8. **Live Feature Registry**: Whenever adding a feature, update [`registry/FEATURE_REGISTRY.md`](./registry/FEATURE_REGISTRY.md).

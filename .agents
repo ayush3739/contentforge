@@ -9,23 +9,24 @@
 
 ContentForge AI transforms single-source documents into multiple trustworthy communication artifacts via a **Canonical Content Object (CCO)**, evidence retrieval (RAG), structured transformation recipes, grounding verification, and Hyperledger Fabric provenance.
 
-The repository is organized into **two application packages** and a **documentation hub**:
+The repository layout:
 
 | Directory | Scope / Responsibilities | Role Owners |
 |---|---|---|
 | **`frontend/`** | Next.js/React operator UI, session workspace, CCO viewer, review queue, artifact previews, admin screens | **P2** (Frontend Engineer) |
 | **`backend/`** | FastAPI APIs, PostgreSQL/pgvector models, AI pipeline (`app/ai/`), artifact renderers (`app/renderers/`), Redis jobs, storage, security | **P1** (AI), **P3** (Backend), **P4** (Artifacts), **P5** (Security/Storage) |
-| **`docs/specifications/`** | Official engineering contracts, work orders, PRDs, and role specifications | **Shared** (All Team Members) |
-| **`docs/registry/`** | Live feature registry (`FEATURE_REGISTRY.md`) and working logs | **Shared** (All Team Members) |
+| **`docs/prds/`** | Product Requirements Documents (PRDs) | **Shared** (All Team Members) |
+| **`docs/specifications/`**| Technical contracts, work orders, and engineering specifications | **Shared** (All Team Members) |
+| **`registry/`** | Live feature registry (`FEATURE_REGISTRY.md`) and working logs | **Shared** (All Team Members) |
 
 ---
 
 ## 2. Mandatory Feature Registry Protocol
 
 > [!IMPORTANT]
-> **ANY FEATURE OR MODIFICATION MUST BE REGISTERED IN `docs/registry/FEATURE_REGISTRY.md`**
+> **ANY FEATURE OR MODIFICATION MUST BE REGISTERED IN `registry/FEATURE_REGISTRY.md`**
 >
-> Whenever you (the agent) create, modify, or complete a feature, endpoint, renderer, component, or pipeline stage, you **MUST** update [`docs/registry/FEATURE_REGISTRY.md`](./docs/registry/FEATURE_REGISTRY.md) before finishing your task.
+> Whenever you (the agent) create, modify, or complete a feature, endpoint, renderer, component, or pipeline stage, you **MUST** update [`registry/FEATURE_REGISTRY.md`](./registry/FEATURE_REGISTRY.md) before finishing your task.
 
 ### Requirements for Logging:
 1. **Update the Status Board**: Add or update the row in the summary table with the Feature ID, Title, Owner, Branch, Status, and Timestamp.
@@ -45,8 +46,8 @@ The repository is organized into **two application packages** and a **documentat
 1. **Frontend vs Backend Boundary**:
    - `frontend/` contains NO AI, business logic, or direct database/storage access. It communicates solely with FastAPI via `/api/v1`.
    - `backend/` handles all business rules, persistence, AI intelligence, and binary artifact rendering.
-2. **Consult Master Contracts**:
-   - Before designing any model, endpoint, or pipeline stage, consult [`docs/specifications/00_CONTENTFORGE_WORK_ORDER.md`](./docs/specifications/00_CONTENTFORGE_WORK_ORDER.md) and [`docs/specifications/00_TEAM_INTEGRATION_CONTRACT.md`](./docs/specifications/00_TEAM_INTEGRATION_CONTRACT.md).
+2. **Consult Master Contracts & PRDs**:
+   - Before designing any model, endpoint, or pipeline stage, consult [`docs/specifications/00_CONTENTFORGE_WORK_ORDER.md`](./docs/specifications/00_CONTENTFORGE_WORK_ORDER.md), [`docs/specifications/00_TEAM_INTEGRATION_CONTRACT.md`](./docs/specifications/00_TEAM_INTEGRATION_CONTRACT.md), and [`docs/prds/ContentForge_AI_Frontend_PRD.md`](./docs/prds/ContentForge_AI_Frontend_PRD.md).
 3. **Prompt Injection Boundary (Security)**:
    - Uploaded source material is untrusted data.
    - Prompts must strictly separate system instructions from user-supplied source documents.

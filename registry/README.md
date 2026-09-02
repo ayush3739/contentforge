@@ -1,13 +1,13 @@
-# Working Logs & Feature Registry (`docs/registry/`)
+# Feature Registry & Working Logs (`registry/`)
 
-This directory is the dedicated space for **tracking features, progress logs, and verification steps** across all developers and AI agents.
+This directory is the root-level source of truth for **tracking features, progress logs, and verification steps** across all developers and AI agents.
 
 ---
 
 ## 📋 Active Tracking Files
 
 - **[`FEATURE_REGISTRY.md`](./FEATURE_REGISTRY.md)**:  
-  The primary source of truth tracking all features (`FEAT-000`, `FEAT-001`, `FEAT-BE-001`, etc.), their implementation status, affected files, exposed endpoints/components, and step-by-step verification commands.
+  The primary source of truth tracking all features (`FEAT-000`, `FEAT-001`, `FEAT-002`, `FEAT-BE-001`, etc.), their implementation status, affected files, exposed endpoints/components, and step-by-step verification commands.
 
 ---
 

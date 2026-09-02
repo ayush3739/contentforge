@@ -3,7 +3,7 @@
 > **Owner:** P2 (Frontend Engineer)  
 > **Core Stack:** Next.js (App Router), React, TypeScript, Tailwind CSS, TanStack Query, Lucide Icons  
 > **Master Specifications:**  
-> - [`docs/specifications/ContentForge_AI_Frontend_PRD.md`](../docs/specifications/ContentForge_AI_Frontend_PRD.md)  
+> - [`docs/prds/ContentForge_AI_Frontend_PRD.md`](../docs/prds/ContentForge_AI_Frontend_PRD.md)  
 > - [`docs/specifications/00_CONTENTFORGE_WORK_ORDER.md`](../docs/specifications/00_CONTENTFORGE_WORK_ORDER.md)  
 > - [`docs/specifications/00_TEAM_INTEGRATION_CONTRACT.md`](../docs/specifications/00_TEAM_INTEGRATION_CONTRACT.md)
 

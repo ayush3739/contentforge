@@ -8,12 +8,13 @@
 
 ContentForge AI (SIH26154) transforms single-source documents into verified, cross-platform communication artifacts with blockchain provenance.
 
-The repository is structured into two main packages and a shared documentation hub:
+The repository is structured into two main packages and shared resources:
 
 - **`frontend/`** — Owned by **P2 (Frontend Engineer)** (Next.js / React UI)
 - **`backend/`** — Owned jointly by **P1 (AI)**, **P3 (Backend API/DB)**, **P4 (Renderers)**, and **P5 (Storage/Security)**
-- **`docs/specifications/`** — Official project specifications, work orders, contracts, and PRDs
-- **`docs/registry/`** — Live feature registry (`FEATURE_REGISTRY.md`) and working logs
+- **`docs/prds/`** — Product Requirements Documents (PRDs)
+- **`docs/specifications/`** — Official project specifications, work orders, and engineering contracts
+- **`registry/`** — Live feature registry (`FEATURE_REGISTRY.md`) and working logs
 
 ---
 
@@ -21,7 +22,7 @@ The repository is structured into two main packages and a shared documentation h
 
 Whenever adding or changing any feature or capability in this repository:
 
-1. You **MUST** update [`docs/registry/FEATURE_REGISTRY.md`](./docs/registry/FEATURE_REGISTRY.md).
+1. You **MUST** update [`registry/FEATURE_REGISTRY.md`](./registry/FEATURE_REGISTRY.md).
 2. Record the Feature ID, title, status, description, files touched, and explicit instructions for how someone else can view and verify the feature.
 3. This ensures all teammates have complete visibility into ongoing and completed work.
 

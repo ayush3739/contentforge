@@ -45,8 +45,8 @@ Use clear, structured commit messages adhering to Conventional Commits:
 
 Before submitting a Pull Request:
 
-- [ ] Code is placed in the proper package (`frontend/`, `backend/`, or `docs/`).
-- [ ] Registered the new feature/change in [`docs/registry/FEATURE_REGISTRY.md`](./docs/registry/FEATURE_REGISTRY.md).
+- [ ] Code is placed in the proper package (`frontend/`, `backend/`, `docs/`, or `registry/`).
+- [ ] Registered the new feature/change in [`registry/FEATURE_REGISTRY.md`](./registry/FEATURE_REGISTRY.md).
 - [ ] No secrets or `.env` files are tracked in Git.
 - [ ] Code passes local tests (`uv run pytest`) and linting.
 - [ ] At least one teammate has reviewed and approved the PR.
@@ -62,5 +62,5 @@ A feature is **not done** when it only runs on your local machine. It is done wh
 3. **Errors are gracefully handled** without crashing the application.
 4. **Database state is properly persisted** where required.
 5. **Frontend integration works** where applicable.
-6. **Feature Registry is updated** in `docs/registry/FEATURE_REGISTRY.md` with instructions on how to view/verify.
+6. **Feature Registry is updated** in `registry/FEATURE_REGISTRY.md` with instructions on how to view/verify.
 7. **Another teammate can pull the branch and run it**.
