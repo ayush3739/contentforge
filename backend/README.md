@@ -1,39 +1,87 @@
-# Backend Workspace — Person 3 (Backend & Database Engineer)
+# Backend Workspace — FastAPI, AI Pipeline & Artifact Engine
 
-> **Owner:** P3 (Backend / Database Engineer)  
-> **Core Stack:** Python 3.11+, FastAPI, PostgreSQL 16 + pgvector, SQLAlchemy 2.0, Alembic, Redis  
-> **Master Specification:** [`documents/03_P3_BACKEND_API.md`](../documents/03_P3_BACKEND_API.md)  
-> **Team Contract:** [`documents/00_TEAM_INTEGRATION_CONTRACT.md`](../documents/00_TEAM_INTEGRATION_CONTRACT.md)
+> **Owners:**  
+> - **P3:** Backend API Engineer (FastAPI, PostgreSQL/pgvector, Auth/RBAC, Job Orchestration)  
+> - **P1:** AI Engineer (Document Ingestion, CCO, RAG, Structured Generation, Verification)  
+> - **P4:** Artifact Engineer (Transformation Recipes, PPTX/PDF/DOCX Renderers, Checksums)  
+> - **P5:** Security & Storage Integration (Audit Logging, MinIO/S3, Blockchain Provenance Anchoring)  
+>  
+> **Master Specifications:**  
+> - [`docs/00_CONTENTFORGE_WORK_ORDER.md`](../docs/00_CONTENTFORGE_WORK_ORDER.md)  
+> - [`docs/03_P3_BACKEND_API.md`](../docs/03_P3_BACKEND_API.md)  
+> - [`docs/01_P1_AI_ENGINEER.md`](../docs/01_P1_AI_ENGINEER.md)  
+> - [`docs/04_P4_OUTPUT_ARTIFACT.md`](../docs/04_P4_OUTPUT_ARTIFACT.md)
 
 ---
 
 ## 🎯 Mission
 
-You own the **FastAPI application layer, database models, persistence, authentication, RBAC middleware, job orchestration, and public APIs**.
-You connect the frontend with the AI pipeline (P1) and artifact renderers (P4).
+The `backend/` directory houses the complete server-side application:
+1. **FastAPI Application & APIs (`app/api/v1/`)**: Auth, sessions, document ingestion, transformation workflows, artifact delivery, and admin/audit endpoints.
+2. **AI Intelligence Engine (`app/ai/`)**: CCO extraction, pgvector RAG, prompt compilation with injection defenses, structured JSON generation, and grounding verification.
+3. **Artifact Renderers & Recipes (`app/renderers/`)**: PPTX generation, HTML/PDF rendering, recipe schemas, and cryptographic SHA-256 checksums.
+4. **Data & Storage Layer (`app/models/`, `app/storage/`)**: PostgreSQL with pgvector for relational data and embeddings; MinIO/S3 for binary artifacts and source documents.
+5. **Background Jobs (`app/jobs/`)**: Asynchronous Redis job queue executing AI generation and rendering without blocking HTTP request threads.
 
 ---
 
-## 📁 Recommended Structure
+## 📁 Repository Structure
 
 ```text
 backend/
 ├── app/
 │   ├── api/
-│   │   └── v1/                      # API routers (/auth, /sessions, /documents, /transformations, /artifacts, /admin)
-│   ├── auth/                        # Password hashing, JWT token creation/validation
-│   ├── core/                        # Application configuration, settings, database session
-│   ├── middleware/                  # Server-side RBAC middleware, request tracing
-│   ├── models/                      # SQLAlchemy ORM models
-│   ├── schemas/                     # Pydantic v2 validation models (Request/Response)
-│   ├── services/                    # Business service layer (interfaces with P1 AI & P4 renderers)
-│   ├── repositories/                # Database query abstractions
-│   ├── jobs/                        # Async task orchestration & Redis job state
-│   └── main.py                      # FastAPI application entrypoint with CORS & error handlers
-├── migrations/                      # Alembic database migrations
-├── tests/                           # Backend unit and API tests
-└── requirements.txt                 # Backend dependencies
+│   │   └── v1/                      # FastAPI routers (/auth, /sessions, /documents, /transformations, /artifacts, /admin)
+│   ├── ai/                          # P1: AI Intelligence Pipeline
+│   │   ├── ingestion/               # Document parsers (PDF, DOCX, TXT)
+│   │   ├── extraction/              # Deterministic & LLM extraction
+│   │   ├── cco/                     # Canonical Content Object model & versioning
+│   │   ├── chunking/                # Semantic text chunking with metadata
+│   │   ├── retrieval/               # pgvector hybrid & vector search
+│   │   ├── planner/                 # Transformation planner
+│   │   ├── prompts/                 # Prompt compiler (system policies + untrusted source separation)
+│   │   ├── gateway/                 # Model gateway (Gemini, OpenAI, Anthropic, Ollama)
+│   │   ├── generation/              # Schema-constrained output generator
+│   │   └── verification/            # Grounding & consistency verifier
+│   ├── renderers/                   # P4: Artifact Renderers & Recipes
+│   │   ├── recipes/                 # JSON recipes (presentation.json, executive_summary.json, advisory.json)
+│   │   ├── pptx_renderer.py         # python-pptx presentation builder
+│   │   ├── html_renderer.py         # Executive summary & advisory HTML/PDF builder
+│   │   └── base.py                  # Base renderer with SHA-256 checksum calculator
+│   ├── core/                        # Application config, settings, database engine, JWT security
+│   ├── middleware/                  # Server-side RBAC middleware, request tracing, audit interceptor
+│   ├── models/                      # SQLAlchemy ORM models (User, Session, Document, CCO, Artifact, Audit)
+│   ├── schemas/                     # Pydantic v2 validation models
+│   ├── services/                    # Business service orchestrators
+│   ├── jobs/                        # Redis queue workers & async tasks
+│   ├── storage/                     # MinIO / S3 object storage client
+│   ├── audit/                       # Append-only audit logger & security event capture
+│   └── main.py                      # FastAPI application entrypoint with CORS & OpenAPI setup
+├── migrations/                      # Alembic database migration scripts
+├── tests/                           # Pytest test suite (API, AI pipeline, renderers)
+└── requirements.txt                 # Python dependencies
 ```
+
+---
+
+## 🚀 Quickstart
+
+```bash
+# 1. Navigate to backend directory
+cd backend
+
+# 2. Set up Python virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Start local development server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Interactive OpenAPI documentation will be accessible at: `http://localhost:8000/docs`.
 
 ---
 
@@ -41,42 +89,9 @@ backend/
 
 - **Auth**: `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`
 - **Sessions**: `POST /sessions`, `GET /sessions`, `GET /sessions/{id}`, `PATCH /sessions/{id}`
-- **Documents**: `POST /sessions/{id}/documents`, `GET /documents/{id}`, `GET /documents/{id}/versions`, `GET /documents/{id}/cco`, `GET /documents/{id}/evidence`
+- **Documents**: `POST /sessions/{id}/documents`, `GET /documents/{id}`, `GET /documents/{id}/versions`, `GET /documents/{id}/download`, `GET /documents/{id}/cco`, `GET /documents/{id}/evidence`
 - **Transformations**: `POST /transformations`, `GET /transformations/{id}`, `GET /transformations/{id}/status`
-- **Artifacts**: `GET /artifacts/{id}`, `GET /artifacts/{id}/versions`, `GET /artifacts/{id}/download`, `POST /artifacts/{id}/finalize`
+- **Artifacts**: `GET /artifacts/{id}`, `GET /artifacts/{id}/download`, `POST /artifacts/{id}/finalize`
 - **Verification**: `GET /artifacts/{id}/verification`, `POST /artifacts/{id}/verify`, `POST /artifacts/{id}/revise`
 - **Provenance**: `GET /provenance/{id}`, `POST /provenance/{id}/anchor`
 - **Admin**: `GET /admin/users`, `POST /admin/users`, `GET /admin/audit-logs`, `GET /admin/security-events`
-
----
-
-## 🚀 Quickstart
-
-```bash
-# 1. Enter the backend directory
-cd backend
-
-# 2. Create and activate a Python virtual environment
-python -m venv .venv
-source .venv/bin/activate  # Or on Windows: .venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Run database migrations
-alembic upgrade head
-
-# 5. Start development server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Interactive Swagger documentation will be available at `http://localhost:8000/docs`.
-
----
-
-## ⚠️ Non-Negotiable Rules for Backend
-
-1. **No AI in Route Handlers**: Route handlers must delegate AI processing to P1's AI service via asynchronous background jobs or workers.
-2. **PostgreSQL JSONB**: Store semi-structured data (`cco_json`, `issues_json`) as JSONB while keeping high-value identifiers as indexed relational columns.
-3. **Off-Storage Binary Files**: Never store binary PDFs/DOCX in PostgreSQL. Store `storage_key`, `checksum`, and `mime_type` in the DB and binary data in object storage.
-4. **Enforce RBAC Server-Side**: Protect routes using dependencies like `require_role("reviewer")` or `require_role("admin")`.

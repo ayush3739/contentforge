@@ -1,172 +1,139 @@
 # ContentForge AI
 
-> **SIH26154 | Shared Engineering Workspace**
+> **SIH 2026 — SIH26154 | Elite Coders**
 
-ContentForge AI converts one source into multiple trustworthy communication artefacts by understanding the source once, creating a versioned **Canonical Content Object (CCO)**, retrieving supporting evidence, applying an operator-selected transformation plan, generating structured content, verifying it, and delivering versioned artefacts with cryptographic provenance.
+ContentForge AI converts one source document into multiple trustworthy, audience-specific communication artefacts by understanding the source once, creating a versioned **Canonical Content Object (CCO)**, retrieving supporting evidence, generating structured content, verifying every claim, and delivering versioned artefacts (PPTX, PDF, DOCX, HTML) with cryptographic provenance.
+
+---
+
+## 📁 Streamlined Repository Structure
+
+The repository is organized into two primary application packages and a unified documentation hub:
+
+```text
+contentforge/
+├── frontend/         # P2: Next.js / React UI (Operator workspace, CCO viewer, Review queue, Artifact preview)
+├── backend/          # P1, P3, P4, P5: FastAPI Core, AI Pipeline, Artifact Renderers, DB & Storage
+├── docs/             # Centralized Team Documentation, Work Orders, Contracts, PRDs & Feature Registry
+├── docker-compose.yml# Shared local infrastructure (PostgreSQL+pgvector, Redis, MinIO)
+├── .env.example      # Master environment variable template
+├── .gitignore        # Standard Git ignore rules
+├── .agents           # Operating guidelines and feature registry protocol for AI agents
+├── AGENTS.md         # Visible agent operating guidelines
+├── CONTRIBUTING.md   # Git branching strategy, PR checklist, and Definition of Done
+└── README.md         # This file
+```
 
 ---
 
 ## 👥 Five-Person Team Ownership
 
-| Role | Engineer | Folder | Primary Ownership | Reference Specification |
+| Role | Engineer | Workspace | Primary Ownership | Master Reference in `docs/` |
 |---|---|---|---|---|
-| **P1** | AI Engineer | [`ai/`](./ai) | Complete AI pipeline (Source/Prompt → CCO → RAG → Plan → Generation → Grounding Verification) | [`01_P1_AI_ENGINEER.md`](./documents/01_P1_AI_ENGINEER.md) |
-| **P2** | Frontend Engineer | [`frontend/`](./frontend) | Operator UI, Review Queue, Artifact Workspace, Admin & Provenance dashboards | [`ContentForge_AI_Frontend_PRD.md`](./documents/ContentForge_AI_Frontend_PRD.md) |
-| **P3** | Backend/API Engineer | [`backend/`](./backend) | FastAPI application APIs, PostgreSQL models, jobs, persistence, session state | [`03_P3_BACKEND_API.md`](./documents/03_P3_BACKEND_API.md) |
-| **P4** | Output / Artifact Engineer | [`templates/`](./templates) | Transformation recipes, renderers (PPTX, DOCX/PDF, HTML), artifact preview/export | [`04_P4_OUTPUT_ARTIFACT.md`](./documents/04_P4_OUTPUT_ARTIFACT.md) |
-| **P5** | Cloud / Cyber / Blockchain | [`infrastructure/`](./infrastructure) & [`blockchain/`](./blockchain) | Infrastructure, Docker, secrets, RBAC support, audit logs, Hyperledger provenance | [`05_P5_CLOUD_CYBER_BLOCKCHAIN.md`](./documents/05_P5_CLOUD_CYBER_BLOCKCHAIN.md) |
+| **P1** | AI Engineer | [`backend/app/ai/`](./backend) | CCO creation, RAG, prompt compilation, structured generation, grounding verification | [`docs/01_P1_AI_ENGINEER.md`](./docs/01_P1_AI_ENGINEER.md) |
+| **P2** | Frontend Engineer | [`frontend/`](./frontend) | Next.js/React operator UI, review queue, artifact viewers, admin screens | [`docs/ContentForge_AI_Frontend_PRD.md`](./docs/ContentForge_AI_Frontend_PRD.md) |
+| **P3** | Backend Engineer | [`backend/`](./backend) | FastAPI public APIs, PostgreSQL models, RBAC, job orchestration, persistence | [`docs/03_P3_BACKEND_API.md`](./docs/03_P3_BACKEND_API.md) |
+| **P4** | Artifact Engineer | [`backend/app/renderers/`](./backend) | Transformation recipes, PPTX/PDF/DOCX/HTML renderers, SHA-256 checksums | [`docs/04_P4_OUTPUT_ARTIFACT.md`](./docs/04_P4_OUTPUT_ARTIFACT.md) |
+| **P5** | Cloud/Cyber/Blockchain | [`backend/`, `docker-compose.yml`](./) | Infrastructure, Docker, storage, security controls, audit, Hyperledger provenance | [`docs/05_P5_CLOUD_CYBER_BLOCKCHAIN.md`](./docs/05_P5_CLOUD_CYBER_BLOCKCHAIN.md) |
 
-> 📖 **Team Integration Contract**: All team members **must read** [`00_TEAM_INTEGRATION_CONTRACT.md`](./documents/00_TEAM_INTEGRATION_CONTRACT.md) before writing code.
+> 📖 **Team Work Order & Contract:** All team members must review [`docs/00_CONTENTFORGE_WORK_ORDER.md`](./docs/00_CONTENTFORGE_WORK_ORDER.md) and [`docs/00_TEAM_INTEGRATION_CONTRACT.md`](./docs/00_TEAM_INTEGRATION_CONTRACT.md).
 
 ---
 
 ## 🏛️ System Architecture
 
 ```text
-                         ┌─────────────────────┐
-                         │      FRONTEND       │
-                         │       P2            │
-                         │ React / Next.js     │
-                         └──────────┬──────────┘
-                                    │ HTTPS/JSON
-                                    ▼
-                         ┌─────────────────────┐
-                         │    CORE BACKEND     │
-                         │       P3            │
-                         │ FastAPI             │
-                         │ Auth / Sessions     │
-                         │ Documents / Jobs    │
-                         └──────┬──────┬───────┘
-                                │      │
-                    ┌───────────┘      └────────────┐
-                    ▼                              ▼
-          ┌──────────────────┐            ┌──────────────────┐
-          │    AI PIPELINE   │            │ ARTIFACT ENGINE   │
-          │       P1         │            │       P4          │
-          │                  │            │                  │
-          │ Understand       │            │ Recipes          │
-          │ CCO              │            │ PPTX             │
-          │ RAG              │            │ DOCX             │
-          │ Planner          │            │ PDF/HTML         │
-          │ Prompt compiler  │            │ Preview/export   │
-          │ Generation       │            │                  │
-          │ Verification     │            │                  │
-          └────────┬─────────┘            └────────┬─────────┘
-                   │                               │
-                   └──────────────┬────────────────┘
-                                  ▼
-                  ┌──────────────────────────────────┐
-                  │            DATA LAYER             │
-                  │ PostgreSQL + pgvector             │
-                  │ Object Storage (S3 / MinIO)       │
-                  │ Redis                             │
-                  └────────────────┬─────────────────┘
-                                   │
-                       ┌───────────┴───────────┐
-                       ▼                       ▼
-             ┌──────────────────┐    ┌──────────────────┐
-             │ SECURITY / AUDIT │    │ PROVENANCE       │
-             │       P5         │    │ Hyperledger      │
-             │ RBAC / logging   │    │ finalized hashes │
-             └──────────────────┘    └──────────────────┘
+                         USERS / OPERATOR
+                                │
+                                ▼
+                     ┌─────────────────────┐
+                     │   FRONTEND (P2)     │
+                     │   Next.js / React   │
+                     └──────────┬──────────┘
+                                │ HTTPS / JSON
+                                ▼
+                     ┌─────────────────────┐
+                     │    BACKEND (P3)     │
+                     │    FastAPI Core     │
+                     └──────┬─────┬────────┘
+                            │     │
+               ┌────────────┘     └────────────┐
+               ▼                               ▼
+    ┌──────────────────────┐        ┌──────────────────────┐
+    │   AI PIPELINE (P1)   │        │ ARTIFACT ENGINE (P4) │
+    │                      │        │                      │
+    │ Ingestion & CCO      │        │ Recipes              │
+    │ RAG / pgvector       │        │ PPTX Renderer        │
+    │ Prompt Compiler      │        │ PDF / DOCX / HTML    │
+    │ Generation & Verify  │        │ Checksum (SHA-256)   │
+    └──────────┬───────────┘        └──────────┬───────────┘
+               │                               │
+               └──────────────┬────────────────┘
+                              ▼
+              ┌────────────────────────────────┐
+              │     DATA & SECURITY LAYER      │
+              │ PostgreSQL + pgvector (P3/P5)  │
+              │ MinIO / S3 Object Storage (P5) │
+              │ Redis Job Queue (P3/P5)        │
+              │ Hyperledger Provenance (P5)    │
+              └────────────────────────────────┘
 ```
 
 ---
 
-## 📁 Repository Structure
+## 🚀 Quickstart
 
-```text
-contentforge/
-├── ai/               # P1: AI pipeline modules (CCO, RAG, prompt compiler, generation, verification)
-├── frontend/         # P2: Next.js / React application (Pages, Components, Hooks, API client)
-├── backend/          # P3: FastAPI core backend (Routers, DB models, RBAC, jobs, persistence)
-├── workers/          # P1 + P3: Background workers & task runners (Celery / ARQ / Redis queue)
-├── templates/        # P4: Transformation recipes & format renderers (PPTX, DOCX, HTML, Social)
-├── infrastructure/   # P5: Cloud orchestration, Dockerfiles, Nginx, deployment scripts
-├── blockchain/       # P5: Hyperledger Fabric chaincode & provenance anchoring service
-├── documents/        # Core team engineering specifications and PRD documents
-├── docs/             # Shared team developer notes, API documentation, and architecture guides
-├── tests/            # Shared end-to-end integration and smoke tests
-├── docker-compose.yml# Shared local development environment (PostgreSQL+pgvector, Redis)
-├── .env.example      # Master environment variable template
-├── .gitignore        # Standard Git ignore rules
-└── CONTRIBUTING.md   # Branching workflow, PR guidelines, and Definition of Done
-```
-
----
-
-## 🚀 Getting Started
-
-### 1. Clone & Configure Environment
+### 1. Configure Local Environment
 ```bash
-git clone <repo-url>
-cd contentforge
-
-# Copy environment template
 cp .env.example .env
-# Fill in required secrets (LLM_API_KEY, JWT_SECRET, etc.) in your local .env
+# Edit .env with your local credentials, JWT secret, and LLM API keys
 ```
 
 ### 2. Start Core Infrastructure (Docker)
-Start PostgreSQL (with `pgvector`) and Redis:
 ```bash
-docker-compose up -d db redis
+docker-compose up -d db redis minio
 ```
 
-### 3. Role Quickstarts
+### 3. Start Backend
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+Swagger UI available at `http://localhost:8000/docs`.
 
-- **P1 (AI)**:
-  ```bash
-  cd ai
-  # Refer to ai/README.md and documents/01_P1_AI_ENGINEER.md
-  ```
-- **P2 (Frontend)**:
-  ```bash
-  cd frontend
-  # Refer to frontend/README.md and documents/ContentForge_AI_Frontend_PRD.md
-  ```
-- **P3 (Backend)**:
-  ```bash
-  cd backend
-  # Refer to backend/README.md and documents/03_P3_BACKEND_API.md
-  ```
-- **P4 (Output & Artifacts)**:
-  ```bash
-  cd templates
-  # Refer to templates/README.md and documents/04_P4_OUTPUT_ARTIFACT.md
-  ```
-- **P5 (Infra & Blockchain)**:
-  ```bash
-  cd infrastructure # or cd blockchain
-  # Refer to infrastructure/README.md and documents/05_P5_CLOUD_CYBER_BLOCKCHAIN.md
-  ```
+### 4. Start Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Application accessible at `http://localhost:3000`.
 
 ---
 
 ## 🌿 Git Branching Strategy
 
-Follow the branching rules in [`CONTRIBUTING.md`](./CONTRIBUTING.md):
-
-- `main` — Production-ready, stable releases only. Never push directly to `main`.
+- `main` — Stable production releases only.
 - `develop` — Shared team integration branch.
-- Feature branches branched off `develop`:
-  - `feature/p1-<feature-name>` (AI Pipeline)
-  - `feature/p2-<feature-name>` (Frontend)
-  - `feature/p3-<feature-name>` (Backend API & DB)
-  - `feature/p4-<feature-name>` (Recipes & Renderers)
-  - `feature/p5-<feature-name>` (Infra, Security & Blockchain)
+- Feature branches branched from `develop`:
+  - `feature/frontend-<feature-name>` (Frontend UI)
+  - `feature/backend-<feature-name>` (FastAPI & DB)
+  - `feature/ai-<feature-name>` (AI Pipeline)
+  - `feature/renderer-<feature-name>` (Artifact Renderers)
+  - `feature/infra-<feature-name>` (Infra, Security & Provenance)
 
 ---
 
-## 🎯 Non-Negotiable Architecture Principles
+## 🎯 Non-Negotiable Architecture Rules
 
 1. **One source, one canonical understanding** (CCO is the semantic source of truth).
-2. **All outputs reference a CCO version.**
-3. **RAG retrieves evidence; it is not the source of truth.**
-4. **The LLM does not directly control application actions.**
-5. **Structured generation is preferred over free-form output.**
-6. **Generated claims must be verifiable against evidence.**
-7. **Uploaded content is untrusted** (strict prompt injection boundaries).
-8. **RBAC is enforced server-side.**
-9. **Audit logs are separate from normal application logs.**
-10. **Source/artifact files remain off-chain; only provenance hashes go to the ledger.**
+2. **All outputs reference a versioned CCO.**
+3. **Structured AI JSON**: P1 outputs validated, renderer-neutral JSON.
+4. **Renderer Integrity**: P4 transforms structured AI JSON into target formats without fabricating facts.
+5. **Untrusted Uploads**: Source documents are treated as untrusted data with strict prompt boundaries.
+6. **Server-Side Security**: RBAC (`analyst`, `reviewer`, `admin`) is strictly validated on the backend.
+7. **Off-Chain Ledger**: Raw files remain in object storage; only SHA-256 hashes are anchored to Hyperledger Fabric.
+8. **Live Feature Registry**: Whenever adding a feature, update [`docs/FEATURE_REGISTRY.md`](./docs/FEATURE_REGISTRY.md).

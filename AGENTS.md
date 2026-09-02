@@ -6,17 +6,13 @@
 
 ## 1. Project Overview & Ownership
 
-ContentForge AI (SIH26154) is a multi-role project transforming single-source documents into verified, cross-platform communication artifacts with blockchain provenance.
+ContentForge AI (SIH26154) transforms single-source documents into verified, cross-platform communication artifacts with blockchain provenance.
 
-Engineers and agents operate within designated ownership directories:
+The repository is structured into two main packages and a shared documentation hub:
 
-- **`ai/`** — Owned by **P1 (AI Engineer)**
-- **`frontend/`** — Owned by **P2 (Frontend Engineer)**
-- **`backend/`** — Owned by **P3 (Backend API Engineer)**
-- **`workers/`** — Jointly owned by **P1 & P3 (Async Background Jobs)**
-- **`templates/`** — Owned by **P4 (Output & Artifacts)**
-- **`infrastructure/`** & **`blockchain/`** — Owned by **P5 (Cloud, Cyber, Provenance)**
-- **`docs/`** & **`tests/`** — Shared workspace
+- **`frontend/`** — Owned by **P2 (Frontend Engineer)** (Next.js / React UI)
+- **`backend/`** — Owned jointly by **P1 (AI)**, **P3 (Backend API/DB)**, **P4 (Renderers)**, and **P5 (Storage/Security)**
+- **`docs/`** — Shared workspace for specifications, work orders, contracts, and the live feature registry
 
 ---
 
@@ -43,6 +39,6 @@ Whenever adding or changing any feature or capability in this repository:
 ## 4. Git Flow
 
 - Always branch off `develop`.
-- Name branches `feature/p<role-number>-<feature-name>`.
-- Commit with conventional messages (e.g., `feat(p2-ui): add cco viewer table`).
+- Name branches `feature/<area>-<feature-name>` (e.g., `feature/frontend-cco-viewer`, `feature/backend-session-api`).
+- Commit with conventional messages (e.g., `feat(ui): add cco viewer table`).
 - Never commit `.env` or sensitive credentials.
