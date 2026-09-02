@@ -92,9 +92,12 @@ cp .env.example .env
 ```
 
 ### 2. Start Core Infrastructure (Docker)
+Start PostgreSQL (with `pgvector`) and Redis:
 ```bash
-docker-compose up -d db redis minio
+docker-compose up -d db redis
 ```
+
+Full details: [`infrastructure/README.md`](./infrastructure/README.md) · [`docs/P5_HANDOFF.md`](./docs/P5_HANDOFF.md).
 
 ### 3. Start Backend
 ```bash

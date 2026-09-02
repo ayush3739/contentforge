@@ -77,3 +77,8 @@ desktop.ini
 # Docker / Local logs
 *.log
 docker-compose.override.yml
+
+# Local backups (Phase 18 — never commit backup dumps)
+backups/
+*.sql.gz
+*.dump
