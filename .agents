@@ -67,3 +67,10 @@ The repository layout:
 - Work on `feature/<role-or-feature-name>` branched from `develop` (or directly on `main` when instructed).
 - Never commit secrets, API keys, or `.env` files. Ensure `.env.example` remains updated if new environment variables are introduced.
 - Follow conventional commit style: `feat(ai): add CCO extraction logic`.
+
+---
+
+## 5. Command Execution & Git Safety Rules
+
+- **Allowed Automated Commands**: The AI agent is authorized to automatically execute all development, package management (`uv`, `npm`), testing (`pytest`), database migration (`alembic`), and local service commands without prompting.
+- **Guarded Git Operations**: The AI agent must **NEVER** run modifying Git commands (`git commit`, `git push`, `git merge`, `git reset`, `git rebase`, `git checkout -b`) automatically without explicit user instruction or confirmation.

@@ -44,3 +44,11 @@ Whenever adding or changing any feature or capability in this repository:
 - Name branches `feature/<area>-<feature-name>`.
 - Commit with conventional messages (e.g., `feat(ui): add cco viewer table`).
 - Never commit `.env` or sensitive credentials.
+
+---
+
+## 5. Command Execution & Git Safety Rules
+
+- **Allowed Automated Commands**: The AI agent is authorized to automatically execute all development, package management (`uv`, `npm`), testing (`pytest`), database migration (`alembic`), and local service commands without prompting.
+- **Guarded Git Operations**: The AI agent must **NEVER** run modifying Git commands (`git commit`, `git push`, `git merge`, `git reset`, `git rebase`, `git checkout -b`) automatically without explicit user instruction or confirmation.
+- **NOT ALLOWED** -  the ai agent is not authorized to automatically read the any .env credentials or any secrets present in the file system. 

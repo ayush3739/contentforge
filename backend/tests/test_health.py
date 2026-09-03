@@ -26,8 +26,8 @@ def test_health_endpoint():
     assert data["service"] == "backend"
 
 
-def test_api_v1_health_endpoint():
-    response = client.get("/api/v1/health")
+def test_api_health_endpoint():
+    response = client.get("/api/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"

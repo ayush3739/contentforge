@@ -77,3 +77,5 @@ desktop.ini
 # Docker / Local logs
 *.log
 docker-compose.override.yml
+latest_run_output.json
+backend/latest_run_output.json

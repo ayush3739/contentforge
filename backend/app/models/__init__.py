@@ -1,14 +1,35 @@
 """
-Database Models Package — Owned by P3 (Backend / Database Engineer)
+Database Models Package — ContentForge AI (Consolidated Schema)
 
-This package contains SQLAlchemy ORM entities:
-- user.py: User, Role, UserRole
-- session.py: Session (persistent transformation workspace)
-- document.py: Document, DocumentVersion, SourceBlock, Chunk
-- cco.py: CCOVersion (Canonical Content Object with JSONB)
-- transformation.py: TransformationRequest, TransformationRecipe
-- artifact.py: Artifact, ArtifactVersion
-- verification.py: VerificationResult
-- provenance.py: ProvenanceRecord
-- audit.py: AuditLog, SecurityEvent
+This package exports all SQLAlchemy ORM models for ContentForge AI.
 """
+
+from app.models.base import Base, TimestampMixin, UUIDMixin
+from app.models.user import User
+from app.models.session import Session
+from app.models.document import Document
+from app.models.chunk import SourceBlock, Chunk
+from app.models.cco import CCOVersion
+from app.models.transformation import TransformationRequest, TransformationRecipe
+from app.models.artifact import Artifact, VerificationResult
+from app.models.provenance import ProvenanceRecord
+from app.models.audit import AuditLog, SecurityEvent
+
+__all__ = [
+    "Base",
+    "TimestampMixin",
+    "UUIDMixin",
+    "User",
+    "Session",
+    "Document",
+    "SourceBlock",
+    "Chunk",
+    "CCOVersion",
+    "TransformationRequest",
+    "TransformationRecipe",
+    "Artifact",
+    "VerificationResult",
+    "ProvenanceRecord",
+    "AuditLog",
+    "SecurityEvent",
+]
