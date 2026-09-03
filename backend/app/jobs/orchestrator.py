@@ -17,7 +17,15 @@ from app.audit.logger import record_audit_event
 from app.models.artifact import Artifact, VerificationResult
 from app.models.transformation import TransformationRequest
 from app.storage import get_storage_provider
-
+from app.models.document import Document
+from app.models.cco import CCOVersion
+from app.models.chunk import SourceBlock, Chunk
+from app.ai.ingestion.parser import parse_document
+from app.ai.extraction.deterministic import extract_deterministic_data
+from app.ai.extraction.semantic import extract_semantic_data
+from app.ai.cco.builder import build_cco
+from app.ai.chunking.chunker import chunk_blocks
+from app.ai.embeddings import embed_batch
 logger = logging.getLogger("app.jobs.orchestrator")
 
 
@@ -169,3 +177,209 @@ class TransformationJobOrchestrator:
                     self.db.commit()
                 except Exception:
                     self.db.rollback()
+
+
+class IngestionJobOrchestrator:
+    def __init__(self, db: Optional[DBSession] = None):
+        self.db = db
+        self.storage = get_storage_provider()
+
+    async def enqueue_and_process(
+        self,
+        document_id: str,
+        session_id: str,
+        storage_key: str,
+        filename: str,
+        mime_type: str,
+    ):
+        logger.info(f"[JOB-ORCHESTRATOR] Starting ingestion job for document {document_id}")
+        
+        try:
+            # 1. Fetch raw binary from storage
+            content_bytes = await self.storage.get_object(storage_key)
+            if not content_bytes:
+                raise ValueError("Could not retrieve document from storage")
+
+            # 2. Parse text to blocks
+            blocks = parse_document(content_bytes, filename=filename, mime_type=mime_type)
+            if not blocks:
+                raise ValueError("No extractable text found in document")
+            
+            # Extract full text
+            full_text = "\n\n".join(b["text"] for b in blocks if "text" in b)
+
+            # 3. Deterministic Extraction
+            deterministic_data = extract_deterministic_data(full_text)
+
+            # 4. Semantic Extraction
+            semantic_data = await extract_semantic_data(full_text)
+
+            # 5. Build CCO
+            cco_dict = build_cco(
+                document_id=document_id,
+                version_number=1,
+                source_blocks=blocks,
+                deterministic_data=deterministic_data,
+                semantic_data=semantic_data
+            )
+            
+            # 6. Chunk and Embed
+            chunks = chunk_blocks(blocks)
+            texts_to_embed = [c["text"] for c in chunks]
+            embeddings = embed_batch(texts_to_embed)
+
+            # 7. Persist to DB
+            if self.db:
+                # Add CCO Version
+                cco_id = f"CCO-{uuid.uuid4().hex[:8].upper()}"
+                db_cco = CCOVersion(
+                    id=cco_id,
+                    document_id=document_id,
+                    version=1,
+                    cco_json=cco_dict,
+                    hash=cco_dict["hash"]
+                )
+                self.db.add(db_cco)
+
+                # Add Source Blocks
+                for idx, b in enumerate(blocks):
+                    db_block = SourceBlock(
+                        id=f"BLK-{document_id}-{idx}",
+                        document_id=document_id,
+                        block_type=b["block_type"],
+                        content=b["text"],
+                        page_number=b["page"],
+                        section_heading=b["section"],
+                        position_index=b["position"],
+                        metadata_json=b["metadata"]
+                    )
+                    self.db.add(db_block)
+
+                # Add Embedded Chunks
+                for c, emb in zip(chunks, embeddings):
+                    db_chunk = Chunk(
+                        id=c["chunk_id"],
+                        document_id=document_id,
+                        content=c["text"],
+                        page_range=f"{c['metadata'].get('start_page', 1)}-{c['metadata'].get('end_page', 1)}",
+                        section_range=c["metadata"].get("section", "Introduction"),
+                        token_count=c["metadata"].get("estimated_tokens", 0),
+                        embedding=emb
+                    )
+                    self.db.add(db_chunk)
+
+                # Update Document Status
+                db_doc = self.db.query(Document).filter(Document.id == document_id).first()
+                if db_doc:
+                    db_doc.status = "ready"
+
+                self.db.commit()
+                logger.info(f"[JOB-ORCHESTRATOR] Ingestion completed for {document_id}")
+        except Exception as e:
+            logger.error(f"[JOB-ORCHESTRATOR] Ingestion failed for {document_id}: {str(e)}")
+            if self.db:
+                self.db.rollback()
+                db_doc = self.db.query(Document).filter(Document.id == document_id).first()
+                if db_doc:
+                    db_doc.status = "failed"
+                self.db.commit()
+
+    async def stream_process(
+        self,
+        document_id: str,
+        session_id: str,
+        storage_key: str,
+        filename: str,
+        mime_type: str,
+    ):
+        logger.info(f"[JOB-ORCHESTRATOR] Starting streaming ingestion job for document {document_id}")
+        
+        try:
+            yield {"event": "progress", "data": {"stage": "fetching", "message": "Fetching document from storage"}}
+            content_bytes = await self.storage.get_object(storage_key)
+            if not content_bytes:
+                raise ValueError("Could not retrieve document from storage")
+
+            yield {"event": "progress", "data": {"stage": "parsing", "message": "Parsing document text and blocks"}}
+            blocks = parse_document(content_bytes, filename=filename, mime_type=mime_type)
+            if not blocks:
+                raise ValueError("No extractable text found in document")
+            full_text = "\n\n".join(b["text"] for b in blocks if "text" in b)
+
+            yield {"event": "progress", "data": {"stage": "deterministic_extraction", "message": "Extracting deterministic rules and metrics"}}
+            deterministic_data = extract_deterministic_data(full_text)
+
+            yield {"event": "progress", "data": {"stage": "semantic_extraction", "message": "Extracting semantic claims via LLM"}}
+            semantic_data = await extract_semantic_data(full_text)
+
+            yield {"event": "progress", "data": {"stage": "cco_build", "message": "Building Canonical Content Object"}}
+            cco_dict = build_cco(
+                document_id=document_id,
+                version_number=1,
+                source_blocks=blocks,
+                deterministic_data=deterministic_data,
+                semantic_data=semantic_data
+            )
+            
+            yield {"event": "progress", "data": {"stage": "chunking", "message": "Generating pgvector embeddings"}}
+            chunks = chunk_blocks(blocks)
+            texts_to_embed = [c["text"] for c in chunks]
+            embeddings = embed_batch(texts_to_embed)
+
+            yield {"event": "progress", "data": {"stage": "persisting", "message": "Persisting to database"}}
+            if self.db:
+                # Add CCO Version
+                cco_id = f"CCO-{uuid.uuid4().hex[:8].upper()}"
+                db_cco = CCOVersion(
+                    id=cco_id,
+                    document_id=document_id,
+                    version=1,
+                    cco_json=cco_dict,
+                    hash=cco_dict["hash"]
+                )
+                self.db.add(db_cco)
+
+                # Add Source Blocks
+                for idx, b in enumerate(blocks):
+                    db_block = SourceBlock(
+                        id=f"BLK-{document_id}-{idx}",
+                        document_id=document_id,
+                        block_type=b["block_type"],
+                        content=b["text"],
+                        page_number=b["page"],
+                        section_heading=b["section"],
+                        position_index=b["position"],
+                        metadata_json=b["metadata"]
+                    )
+                    self.db.add(db_block)
+
+                # Add Embedded Chunks
+                for c, emb in zip(chunks, embeddings):
+                    db_chunk = Chunk(
+                        id=c["chunk_id"],
+                        document_id=document_id,
+                        content=c["text"],
+                        page_range=f"{c['metadata'].get('start_page', 1)}-{c['metadata'].get('end_page', 1)}",
+                        section_range=c["metadata"].get("section", "Introduction"),
+                        token_count=c["metadata"].get("estimated_tokens", 0),
+                        embedding=emb
+                    )
+                    self.db.add(db_chunk)
+
+                # Update Document Status
+                db_doc = self.db.query(Document).filter(Document.id == document_id).first()
+                if db_doc:
+                    db_doc.status = "ready"
+
+                self.db.commit()
+            
+            yield {"event": "complete", "data": {"stage": "complete", "message": "Ingestion fully completed", "document_id": document_id}}
+        except Exception as e:
+            logger.error(f"[JOB-ORCHESTRATOR] Ingestion failed for {document_id}: {str(e)}")
+            if self.db:
+                self.db.rollback()
+                db_doc = self.db.query(Document).filter(Document.id == document_id).first()
+                if db_doc:
+                    db_doc.status = "failed"
+                self.db.commit()
+            yield {"event": "error", "data": {"stage": "failed", "message": str(e)}}

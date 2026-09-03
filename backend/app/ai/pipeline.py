@@ -34,7 +34,7 @@ class PipelineTransformRequest(BaseModel):
     mime_type: str = Field(default="text/plain", description="MIME type")
     output_types: list[str] = Field(
         default=["executive_summary", "presentation"],
-        description="Target output formats: presentation, executive_summary, advisory"
+        description="Target output formats: presentation, executive_summary, advisory, social_post, infographic, video_package"
     )
     audience: str = Field(default="senior leadership", description="Target audience")
     tone: str = Field(default="professional", description="Tone of voice")

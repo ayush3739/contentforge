@@ -17,6 +17,7 @@
 | `FEAT-AI-002`| Consolidated Schema Migration & Sample Doc Ingestion | P1 / P3 | `main` | ✅ Completed | 2026-09-03 |
 | `FEAT-AI-003`| Server-Sent Events (SSE) Live Transformation Stream | P1 (AI) | `main` | ✅ Completed | 2026-09-03 |
 | `FEAT-AI-004`| Agentic RAG Pipeline & CCO Memory Optimization | P1 (AI) | `main` | ✅ Completed | 2026-09-03 |
+| `FEAT-AI-005`| AI Ingestion Background Worker & Phase 5 Schemas (SSE) | P1 / P3 | `feature/ai-api-integration` | ✅ Completed | 2026-09-03 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
 | `FEAT-RN-001`| *Example: Executive Summary HTML Renderer*| P4 (Renderers)| `feature/renderer-exec`| 📋 Planned | - |
 
