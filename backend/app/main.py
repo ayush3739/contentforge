@@ -72,9 +72,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# AI Engine Routes (P1) — Imported directly from app.api.ai
+# Exception Handlers Registration for Standardized API Error Contract
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from app.core.errors import APIError, api_error_handler, http_exception_handler, validation_exception_handler
+
+app.add_exception_handler(APIError, api_error_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+
+# AI Engine Routes (P1) — Preserved
 from app.api.ai import router as ai_router
 app.include_router(ai_router, prefix="/api")
+
+# Application V1 Routes (P3 Backend)
+from app.api.v1 import router_v1
+app.include_router(router_v1)
 
 
 @app.get("/", tags=["Root"])

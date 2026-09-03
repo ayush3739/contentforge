@@ -8,6 +8,7 @@ from app.models.base import TimestampMixin, UUIDMixin
 class User(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "users"
 
+    clerk_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
