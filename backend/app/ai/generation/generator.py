@@ -41,6 +41,51 @@ def _get_fallback_artifact(artifact_type: str) -> dict[str, Any]:
             "required_actions": ["Review mitigation guidance in source report."],
             "evidence_refs": ["chunk-000"],
         }
+    elif artifact_type == "social_post":
+        return {
+            "artifact_type": "social_post",
+            "platform": "LinkedIn",
+            "target_audience": "Professional Network",
+            "hook": "Important update regarding our operations.",
+            "body": "We have successfully processed the source document and verified its contents.",
+            "key_takeaways": ["Analysis complete", "Facts verified"],
+            "call_to_action": "Read the full report for more details.",
+            "hashtags": ["#update"],
+            "evidence_refs": ["chunk-000"],
+        }
+    elif artifact_type == "infographic":
+        return {
+            "artifact_type": "infographic",
+            "title": "Document Analysis Overview",
+            "subtitle": "Key metrics extracted from source.",
+            "layout_type": "statistical",
+            "data_points": [
+                {"label": "Status", "value": "Verified", "chart_type_recommendation": "metric"}
+            ],
+            "sections": [
+                {
+                    "heading": "Summary",
+                    "content": "The document was processed successfully.",
+                    "evidence_refs": ["chunk-000"],
+                }
+            ],
+        }
+    elif artifact_type == "video_package":
+        return {
+            "artifact_type": "video_package",
+            "title": "Briefing Overview",
+            "estimated_duration_seconds": 30,
+            "target_audience": "General",
+            "scenes": [
+                {
+                    "scene_number": 1,
+                    "visual_description": "Title card fades in.",
+                    "narration": "Welcome to the briefing.",
+                    "on_screen_text": "Analysis Complete",
+                    "evidence_refs": ["chunk-000"],
+                }
+            ],
+        }
     else:
         return {
             "artifact_type": "executive_summary",

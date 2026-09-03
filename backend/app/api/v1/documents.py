@@ -10,8 +10,8 @@ Section 8 of Specification:
 - GET  /api/v1/documents/{id}/evidence
 """
 
-from fastapi import APIRouter, Depends, File, UploadFile, status
-from fastapi.responses import Response
+from fastapi import APIRouter, Depends, File, UploadFile, status, Query
+from fastapi.responses import Response, StreamingResponse
 from app.auth.clerk import ClerkUserPayload
 from app.auth.dependencies import require_permission, require_user
 from app.core.errors import APIError
@@ -34,6 +34,7 @@ router = APIRouter(tags=["Documents"])
 async def upload_document(
     session_id: str,
     file: UploadFile = File(...),
+    stream: bool = Query(False, description="Stream real-time ingestion progress"),
     user: ClerkUserPayload = Depends(require_permission("upload_source")),
 ):
     """
@@ -45,13 +46,22 @@ async def upload_document(
         raise APIError("EMPTY_FILE", "Uploaded document file is empty.", status_code=400)
 
     service = DocumentService()
-    return await service.upload_document(
-        session_id=session_id,
-        filename=file.filename or "uploaded_document.pdf",
-        content=content,
-        mime_type=file.content_type or "application/pdf",
-        user_id=user.user_id,
-    )
+    if stream:
+        return await service.upload_document_stream(
+            session_id=session_id,
+            filename=file.filename or "uploaded_document.pdf",
+            content=content,
+            mime_type=file.content_type or "application/pdf",
+            user_id=user.user_id,
+        )
+    else:
+        return await service.upload_document(
+            session_id=session_id,
+            filename=file.filename or "uploaded_document.pdf",
+            content=content,
+            mime_type=file.content_type or "application/pdf",
+            user_id=user.user_id,
+        )
 
 
 @router.get("/documents/{id}", response_model=DocumentResponse)

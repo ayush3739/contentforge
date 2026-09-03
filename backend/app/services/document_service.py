@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from app.audit.logger import record_audit_event, record_security_event
 from app.core.errors import APIError
+from app.jobs.worker import dispatch_ingestion_job
 from app.models.cco import CCOVersion
 from app.models.document import Document
 from app.storage import get_storage_provider
@@ -63,21 +64,21 @@ class DocumentService:
                     version=1,
                     checksum=checksum,
                     storage_key=storage_key,
-                    status="ready",
+                    status="processing",
                     created_by=user_id,
                 )
                 self.db.add(db_doc)
-
-                cco_id = f"CCO-{uuid.uuid4().hex[:8].upper()}"
-                cco_version = CCOVersion(
-                    id=cco_id,
-                    document_id=doc_id,
-                    version=1,
-                    cco_json={"title": filename, "source_text": content.decode("utf-8", errors="ignore")[:1000]},
-                    hash=checksum[:32],
-                )
-                self.db.add(cco_version)
                 self.db.commit()
+                
+                # Dispatch AI pipeline ingestion job
+                dispatch_ingestion_job(
+                    document_id=doc_id,
+                    session_id=session_id,
+                    storage_key=storage_key,
+                    filename=filename,
+                    mime_type=mime_type,
+                    db=self.db
+                )
             except Exception:
                 if self.db:
                     self.db.rollback()
@@ -90,12 +91,81 @@ class DocumentService:
             "version": 1,
             "checksum": checksum,
             "storage_key": storage_key,
-            "status": "ready",
+            "status": "processing",
             "created_by": user_id,
         }
         self._in_memory_docs[doc_id] = doc_data
         record_audit_event(self.db, user_id=user_id, action="UPLOAD", resource_type="document", resource_id=doc_id)
         return doc_data
+
+    async def upload_document_stream(
+        self,
+        session_id: str,
+        filename: str,
+        content: bytes,
+        mime_type: str,
+        user_id: str,
+    ):
+        import json
+        from fastapi.responses import StreamingResponse
+        from app.jobs.orchestrator import IngestionJobOrchestrator
+
+        if len(content) > MAX_FILE_SIZE_BYTES:
+            record_security_event(self.db, "FILE_SIZE_EXCEEDED", severity="medium", details={"filename": filename})
+            raise APIError("FILE_TOO_LARGE", "Uploaded file exceeds maximum limit of 50 MB.", status_code=400)
+
+        checksum = hashlib.sha256(content).hexdigest()
+        doc_id = f"DOC-{uuid.uuid4().hex[:8].upper()}"
+        storage_key = f"documents/{session_id}/{doc_id}/{filename}"
+
+        await self.storage.put_object(storage_key, content, content_type=mime_type)
+
+        if self.db:
+            try:
+                db_doc = Document(
+                    id=doc_id,
+                    session_id=session_id,
+                    name=filename,
+                    mime_type=mime_type,
+                    version=1,
+                    checksum=checksum,
+                    storage_key=storage_key,
+                    status="processing",
+                    created_by=user_id,
+                )
+                self.db.add(db_doc)
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+
+        record_audit_event(self.db, user_id=user_id, action="UPLOAD", resource_type="document", resource_id=doc_id)
+
+        async def sse_event_publisher():
+            orchestrator = IngestionJobOrchestrator(db=self.db)
+            try:
+                async for item in orchestrator.stream_process(
+                    document_id=doc_id,
+                    session_id=session_id,
+                    storage_key=storage_key,
+                    filename=filename,
+                    mime_type=mime_type,
+                ):
+                    event_name = item.get("event", "message")
+                    data_json = json.dumps(item.get("data", {}))
+                    yield f"event: {event_name}\ndata: {data_json}\n\n"
+            except Exception as exc:
+                err_json = json.dumps({"message": str(exc), "stage": "failed"})
+                yield f"event: error\ndata: {err_json}\n\n"
+
+        return StreamingResponse(
+            sse_event_publisher(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     def get_document(self, doc_id: str) -> Optional[dict]:
         if self.db:
