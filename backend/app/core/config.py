@@ -43,13 +43,20 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSION: int = 384
     EMBEDDING_PROVIDER: str = "local"  # local | openai | gemini
 
-    # Object Storage (P4 & P5 / MinIO, Supabase, Cloudflare R2, AWS S3)
+    # Object Storage (P4 & P5 / MinIO, Supabase, Cloudflare R2, AWS S3, Local)
     STORAGE_PROVIDER: str = "local"  # local | minio | s3 | supabase
     STORAGE_ENDPOINT: Optional[str] = "http://localhost:9000"
     STORAGE_BUCKET: str = "contentforge-artifacts"
     STORAGE_ACCESS_KEY: Optional[str] = "minioadmin"
     STORAGE_SECRET_KEY: Optional[str] = "minioadmin"
     STORAGE_REGION: str = "us-east-1"
+    LOCAL_STORAGE_PATH: str = "./storage_data"
+
+    # Clerk Authentication
+    CLERK_SECRET_KEY: Optional[str] = None
+    CLERK_PUBLISHABLE_KEY: Optional[str] = None
+    CLERK_JWKS_URL: Optional[str] = None
+    CLERK_ISSUER: Optional[str] = None
 
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = [
