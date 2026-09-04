@@ -23,6 +23,7 @@
 | `FEAT-AI-006`| Semantic Extraction Scoping Fix, Substantive Document Depth, Dynamic Artifact Tabs & Social Post Viewer | P1 / P2 | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-SYS-001`| Session DB Persistence, Ingestion Terminal Logging, Post-Ingestion Output Flow & UI Clearance Fix | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-AUTH-002`| Institutional Auth Portal Redesign, Email-Based Role Derivation & Standalone Auth Shell | P2 / P3 | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-SEC-001` | Critical Security & Stability Fixes (DB Session Lifetime, CCO Columns, Auth Bypass, Role Derivation) | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
 | `FEAT-RN-001`| *Example: Executive Summary HTML Renderer*| P4 (Renderers)| `feature/renderer-exec`| 📋 Planned | - |
 
