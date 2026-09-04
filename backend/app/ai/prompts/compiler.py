@@ -54,6 +54,53 @@ def compile_transformation_prompt(
             "text": ev.get("text"),
         })
 
+    custom_instr_block = ""
+    if getattr(plan, "custom_instructions", None):
+        custom_instr_block = f"""
+OPERATOR CUSTOM INSTRUCTIONS (MANDATORY DIRECTION):
+"{plan.custom_instructions}"
+CRITICAL: You MUST prioritize and adhere directly to the operator's custom instructions above. Emphasize the requested angles, tone, facts, or format constraints while remaining factually grounded in the CCO.
+"""
+
+    social_config_block = ""
+    if getattr(plan, "social_config", None):
+        sc = plan.social_config
+        social_config_block = f"""
+SOCIAL MEDIA PLATFORM CONFIGURATION:
+- Platform: {sc.get('platform', 'LinkedIn')}
+- Format Type: {sc.get('post_type', 'Standard Post')}
+- Requested Tone: {sc.get('tone', plan.tone)}
+- Requested Length: {sc.get('length', 'Medium')}
+- Included Hashtags Target: {sc.get('hashtags', '')}
+"""
+
+    format_specific_guidance = ""
+    if plan.artifact_type == "social_post":
+        format_specific_guidance = """
+SOCIAL MEDIA FORMAT DIRECTIVES:
+- Craft an authentic, production-grade social post that looks like genuine corporate communications published by leading enterprises or government authorities.
+- The `hook` should be a compelling opening statement that demands attention without being clickbait.
+- The `body` must deliver substantive narrative flow with concrete facts, exact metrics, and context from the document.
+- The `key_takeaways` must be punchy, impactful statements that readers can immediately grasp.
+- In `body`, DO NOT write meta-announcements like "In this report, we summarize...". Speak directly as the organization communicating its update.
+- Provide 3-5 relevant, high-signal industry hashtags.
+"""
+    elif plan.artifact_type == "presentation":
+        format_specific_guidance = """
+PRESENTATION FORMAT DIRECTIVES:
+- Write with the strategic gravitas of a top-tier management consultancy (McKinsey, BCG) or executive architecture briefing.
+- Ensure slide titles are active and insightful (e.g. "Incident Containment: 14 Nodes Quarantined in <24 Hours").
+- Ensure `body` contains 3-5 substantive bullet points packed with data, causality, and technical findings.
+- Ensure `speaker_notes` provide complete, articulate talking scripts for the presenter explaining the nuance behind the bullets.
+"""
+    elif plan.artifact_type == "infographic":
+        format_specific_guidance = """
+INFOGRAPHIC FORMAT DIRECTIVES:
+- Populate `metrics` with 3-4 key quantitative KPIs from the document. Include `percent` (0-100 integer) for visual radial gauges, `value` with units, and context `trend`.
+- Populate `timeline` with chronological milestones, providing `time`, `event`, and `status` ('critical', 'warning', or 'success').
+- Populate `comparison_bars` with 3-4 comparative operational metrics, each with a valid `percent` (0-100) for width rendering.
+"""
+
     user_instructions = f"""
 TARGET TRANSFORMATION SPECIFICATION:
 - Artifact Type: {plan.artifact_type}
@@ -63,6 +110,9 @@ TARGET TRANSFORMATION SPECIFICATION:
 - Planned Sections: {", ".join(plan.planned_sections)}
 - Constraints:
 {chr(10).join(f"  * {c}" for c in plan.constraints)}
+{custom_instr_block}
+{social_config_block}
+{format_specific_guidance}
 
 CANONICAL CONTENT OBJECT (SEMANTIC SOURCE OF TRUTH):
 ```json

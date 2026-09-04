@@ -21,12 +21,13 @@ class TransformationCreate(BaseModel):
     detail_level: str = Field(default="concise", description="concise, balanced, detailed")
     objective: str = Field(default="decision briefing", description="Transformation objective")
     style: str = Field(default="formal", description="Formatting style requirement")
+    custom_instructions: Optional[str] = Field(None, description="Custom prompt or focus instructions from the user")
 
 
 class TransformationResponse(BaseModel):
     transformation_id: str
     session_id: str
-    cco_version_id: str
+    cco_version_id: Optional[str] = None
     requested_by: Optional[str] = None
     output_types: list[str]
     audience: str
@@ -35,6 +36,7 @@ class TransformationResponse(BaseModel):
     detail_level: str
     objective: str
     style: str
+    custom_instructions: Optional[str] = None
     status: str = "QUEUED"
     created_at: Optional[datetime] = None
 

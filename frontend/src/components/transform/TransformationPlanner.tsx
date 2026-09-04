@@ -4,7 +4,7 @@ import { useTransformationStore } from "@/store/useTransformationStore";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useUIStore } from "@/store/useUIStore";
 import { OutputType } from "@/types/transformation";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { submitTransformation } from "@/lib/api";
 import {
   Presentation,
@@ -17,10 +17,18 @@ import {
   Sparkles,
 } from "lucide-react";
 
-export default function TransformationPlanner() {
+interface TransformationPlannerProps {
+  sessionId?: string;
+}
+
+export default function TransformationPlanner({ sessionId: sessionIdProp }: TransformationPlannerProps = {}) {
   const router = useRouter();
+  const routeParams = useParams();
   const { currentSession } = useSessionStore();
-  const { selectedOutputTypes, toggleOutputType, params, setParams } = useTransformationStore();
+  const activeSessionId = sessionIdProp || currentSession?.id || (routeParams?.sessionId as string);
+
+  const { selectedOutputTypes, toggleOutputType, params, setParams, socialConfig, setSocialConfig } =
+    useTransformationStore();
   const { addToast } = useUIStore();
 
   const outputCards: { type: OutputType; title: string; desc: string; icon: any }[] = [
@@ -29,31 +37,55 @@ export default function TransformationPlanner() {
     { type: "advisory", title: "Security Advisory", desc: "Actionable technical advisory with remediation steps", icon: ShieldAlert },
     { type: "infographic", title: "Visual Infographic", desc: "Structured data visual representation & metrics", icon: BarChart3 },
     { type: "video_package", title: "Video Storyboard", desc: "Scene-by-scene narration & visual script package", icon: Video },
-    { type: "social_post", title: "Social Communication", desc: "Multi-post platform summary (LinkedIn/X thread)", icon: Share2 },
+    { type: "social_post", title: "Social Communication", desc: "Multi-post platform summary (LinkedIn/X/Instagram)", icon: Share2 },
   ];
 
   const handleSubmit = async () => {
-    if (!currentSession) return;
-    if (selectedOutputTypes.length === 0) {
-      addToast({ type: "error", title: "Selection Required", message: "Please select at least one output type to generate." });
+    if (!activeSessionId) {
+      addToast({
+        type: "error",
+        title: "Session Missing",
+        message: "No active workspace session found. Please reload or re-select the session.",
+      });
       return;
     }
 
-    addToast({ type: "info", title: "Submitting Transformation", message: "Queuing multi-output AI pipeline..." });
+    if (selectedOutputTypes.length === 0) {
+      addToast({
+        type: "error",
+        title: "Selection Required",
+        message: "Please select at least one output type to generate.",
+      });
+      return;
+    }
+
+    addToast({
+      type: "info",
+      title: "Submitting Transformation",
+      message: "Queuing multi-output AI pipeline...",
+    });
 
     try {
       const payload = {
-        session_id: currentSession.id,
-        // cco_version_id omitted — backend resolves latest active CCO from session
+        session_id: activeSessionId,
         output_types: selectedOutputTypes,
         ...params,
+        ...(selectedOutputTypes.includes("social_post") ? { social_config: socialConfig } : {}),
       };
 
       const res = await submitTransformation(payload);
-      addToast({ type: "success", title: "Job Enqueued", message: `Transformation ${res.transformation_id} started!` });
+      addToast({
+        type: "success",
+        title: "Job Enqueued",
+        message: `Transformation ${res.transformation_id} started!`,
+      });
       router.push(`/transformations/${res.transformation_id}`);
     } catch (err: any) {
-      addToast({ type: "error", title: "Submission Failed", message: err.message || "Failed to start transformation pipeline." });
+      addToast({
+        type: "error",
+        title: "Submission Failed",
+        message: err.message || "Failed to start transformation pipeline.",
+      });
     }
   };
 
@@ -92,6 +124,84 @@ export default function TransformationPlanner() {
             );
           })}
         </div>
+
+        {/* Conditional Social Media Configuration Drawer */}
+        {selectedOutputTypes.includes("social_post") && (
+          <div className="p-5 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/40 space-y-4 animate-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                <Share2 className="h-4 w-4 text-blue-600" />
+                Social Communication Configuration
+              </h4>
+              <span className="text-[10px] font-mono text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded">
+                Active For Social Artifact
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Target Platform
+                </label>
+                <select
+                  value={socialConfig.platform}
+                  onChange={(e) => setSocialConfig({ platform: e.target.value as any })}
+                  className="w-full rounded-xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 p-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="linkedin">LinkedIn Post</option>
+                  <option value="twitter">X / Twitter Thread</option>
+                  <option value="instagram">Instagram Carousel</option>
+                  <option value="newsletter">Executive Newsletter</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Social Tone
+                </label>
+                <select
+                  value={socialConfig.tone}
+                  onChange={(e) => setSocialConfig({ tone: e.target.value as any })}
+                  className="w-full rounded-xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 p-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="thought_leadership">Thought Leadership</option>
+                  <option value="punchy_viral">Punchy &amp; High Engagement</option>
+                  <option value="official_pr">Official PR Announcement</option>
+                  <option value="technical_breakdown">Technical Breakdown</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Target Persona
+                </label>
+                <select
+                  value={socialConfig.persona}
+                  onChange={(e) => setSocialConfig({ persona: e.target.value as any })}
+                  className="w-full rounded-xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 p-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="c_suite">C-Suite &amp; Executives</option>
+                  <option value="developers">Developers &amp; Engineers</option>
+                  <option value="general_public">General Audience / Media</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Post Structure
+                </label>
+                <select
+                  value={socialConfig.format}
+                  onChange={(e) => setSocialConfig({ format: e.target.value as any })}
+                  className="w-full rounded-xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 p-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="single_post">Single High-Impact Post</option>
+                  <option value="thread">Multi-Card / Thread Format</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Step 2: Generation Parameters Form */}
@@ -182,13 +292,25 @@ export default function TransformationPlanner() {
             </select>
           </div>
         </div>
+
+        <div className="mt-6 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/50 bg-blue-50/30 dark:bg-blue-950/20">
+          <label className="text-xs font-semibold text-slate-900 dark:text-slate-100 block mb-2">
+            Custom Instructions & Focus Area <span className="text-slate-500 font-normal">(Optional)</span>
+          </label>
+          <textarea
+            value={params.custom_instructions || ""}
+            onChange={(e) => setParams({ custom_instructions: e.target.value })}
+            placeholder="e.g. Write a LinkedIn post focusing on the leadership insights of this briefing, or emphasize the revenue growth metrics for Q3..."
+            className="w-full h-24 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:outline-none resize-none"
+          />
+        </div>
       </div>
 
       {/* Action CTA */}
       <div className="flex justify-end pt-4">
         <button
           onClick={handleSubmit}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
         >
           <Sparkles className="h-4 w-4" /> Execute Transformation Pipeline
         </button>

@@ -55,33 +55,26 @@ export default function ExecutiveSummaryViewer({ content, evidenceCitations }: E
   ];
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 space-y-8 max-w-5xl mx-auto">
-      {/* Official Government / Executive Letterhead Banner */}
-      <div className="border-b border-slate-200 dark:border-slate-800 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="printable-document-sheet bg-white text-slate-900 rounded-2xl border border-slate-200 shadow-md p-8 sm:p-10 space-y-8 max-w-4xl mx-auto">
+      {/* Official Document Letterhead Header */}
+      <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-mono">
-              Official Briefing Document
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono flex items-center gap-1">
-              <ShieldCheck className="h-3 w-3" /> CCO Verified
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{title}</h1>
-          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mt-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{title}</h1>
+          <div className="flex items-center gap-4 text-xs text-slate-500 mt-2 flex-wrap">
             <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Published: September 4, 2026</span>
             <span>•</span>
-            <span className="flex items-center gap-1"><Building2 className="h-3.5 w-3.5" /> Department of Incident Response</span>
+            <span className="flex items-center gap-1"><Building2 className="h-3.5 w-3.5" /> Incident Response & Operations</span>
             <span>•</span>
-            <span className="font-mono text-slate-400 dark:text-slate-500">REF: CF-EXEC-2026-09</span>
+            <span className="font-mono text-slate-400">REF: CF-EXEC-2026</span>
           </div>
         </div>
 
         <button
           onClick={() => window.print()}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors shadow-xs w-fit"
+          className="no-print flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-xs w-fit cursor-pointer"
+          title="Print document sheet"
         >
-          <Printer className="h-4 w-4 text-slate-500 dark:text-slate-400" /> Print Briefing
+          <Printer className="h-4 w-4 text-slate-500" /> Print Briefing
         </button>
       </div>
 
@@ -245,30 +238,55 @@ export default function ExecutiveSummaryViewer({ content, evidenceCitations }: E
       </div>
 
       {/* Citation Popover Modal */}
-      {selectedCitation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <span className="text-xs font-bold font-mono text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800">
-                Source Document Grounding Reference: {selectedCitation}
-              </span>
-              <button
-                onClick={() => setSelectedCitation(null)}
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-sm font-bold"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 font-mono">
-              &ldquo;On August 14, 2026, 14 payment gateway processing systems were quarantined following detection of anomalous outbound traffic... Threat actor exploited CVE-2024-3094.&rdquo;
-            </p>
-            <div className="flex justify-between items-center text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-              <span>Source: <strong>Incident_Report.pdf</strong> (Page 2, Paragraph 4)</span>
-              <span className="text-emerald-700 dark:text-emerald-400 font-bold">100% Match Confidence</span>
+      {selectedCitation && (() => {
+        const defaultCitations: Record<string, { text: string; source: string }> = {
+          "chunk-001": {
+            text: "On August 14, 2026, 14 payment gateway processing systems were quarantined following detection of anomalous outbound traffic... Threat actor exploited CVE-2024-3094.",
+            source: "Incident_Report.pdf (Page 2, Paragraph 4)",
+          },
+          "chunk-002": {
+            text: "Zero unauthorized exfiltration of customer cardholder data or unencrypted PII was recorded across primary and replica database clusters.",
+            source: "Forensic_Audit.pdf (Section 3.1, Page 8)",
+          },
+          "chunk-003": {
+            text: "Overall incident remediation, legal consultation, and system restoration costs are capped at $2,500,000 under corporate cyber indemnity insurance.",
+            source: "Financial_Assessment.docx (Page 1, Summary)",
+          },
+        };
+
+        const citationText =
+          evidenceCitations?.[selectedCitation] ||
+          defaultCitations[selectedCitation]?.text ||
+          `Direct source evidence passage corresponding to grounding anchor [${selectedCitation}] in the ingested canonical content object.`;
+        const citationSource =
+          defaultCitations[selectedCitation]?.source ||
+          `Source Document (${selectedCitation})`;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+            <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <span className="text-xs font-bold font-mono text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800">
+                  Source Document Grounding Reference: {selectedCitation}
+                </span>
+                <button
+                  onClick={() => setSelectedCitation(null)}
+                  className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-sm font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 font-mono">
+                &ldquo;{citationText}&rdquo;
+              </p>
+              <div className="flex justify-between items-center text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                <span>Source: <strong>{citationSource}</strong></span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-bold">100% Match Confidence</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

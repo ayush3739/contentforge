@@ -49,3 +49,60 @@
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* ============================================================
+   PRINT STYLES — Document-Only Print Isolation
+   ============================================================ */
+@media print {
+  /* Hide all application chrome */
+  aside,
+  header,
+  nav,
+  .no-print,
+  [data-no-print],
+  button:not(.print-keep) {
+    display: none !important;
+  }
+
+  /* Reset page background */
+  html, body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 12pt !important;
+  }
+
+  /* Ensure main and any intermediate wrappers don't clip or scroll */
+  main, div {
+    overflow: visible !important;
+  }
+
+  /* The printable document fills the page cleanly */
+  .printable-document-sheet {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 1.5cm !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: white !important;
+    page-break-inside: avoid;
+  }
+
+  /* Page break control */
+  .printable-document-sheet h1,
+  .printable-document-sheet h2,
+  .printable-document-sheet h3,
+  .printable-document-sheet table {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  /* Set A4 page size */
+  @page {
+    size: A4;
+    margin: 1.5cm;
+  }
+}

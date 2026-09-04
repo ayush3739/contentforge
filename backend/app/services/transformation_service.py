@@ -13,6 +13,8 @@ from app.audit.logger import record_audit_event
 from app.core.errors import APIError
 from app.models.transformation import TransformationRequest
 from app.models.cco import CCOVersion
+from app.models.document import Document
+from app.models.session import Session
 from app.schemas.transformation import TransformationCreate
 
 
@@ -81,15 +83,37 @@ class TransformationService:
         # 4. If database has zero CCOs, create a valid fallback document & CCO to satisfy FK constraints
         if not cco_version_id and self.db:
             try:
+                # Ensure parent session exists in sessions table to satisfy FK
+                if payload.session_id:
+                    db_sess = self.db.query(Session).filter(Session.id == payload.session_id).first()
+                    if not db_sess:
+                        db_sess = Session(
+                            id=payload.session_id,
+                            name=f"Workspace Session ({payload.session_id})",
+                            status="active",
+                            created_by=user_id,
+                        )
+                        self.db.add(db_sess)
+                        self.db.flush()
+
                 fallback_doc = (
                     self.db.query(Document)
                     .filter(Document.session_id == payload.session_id)
                     .first()
                 )
                 if not fallback_doc:
+                    target_session_id = payload.session_id
+                    if not target_session_id:
+                        any_sess = self.db.query(Session).first()
+                        if not any_sess:
+                            any_sess = Session(id=f"SES-{uuid.uuid4().hex[:8].upper()}", name="Default Workspace", status="active", created_by=user_id)
+                            self.db.add(any_sess)
+                            self.db.flush()
+                        target_session_id = any_sess.id
+
                     fallback_doc = Document(
                         id=f"DOC-{uuid.uuid4().hex[:8].upper()}",
-                        session_id=payload.session_id,
+                        session_id=target_session_id,
                         name="session_briefing.txt",
                         mime_type="text/plain",
                         status="ready",
@@ -116,12 +140,11 @@ class TransformationService:
                 self.db.add(fallback_cco)
                 self.db.flush()
                 cco_version_id = fallback_cco_id
-            except Exception:
+            except Exception as e:
+                import logging
+                logging.getLogger("app.services.transformation").error(f"Failed to create fallback CCO: {e}")
                 if self.db:
                     self.db.rollback()
-
-        if not cco_version_id:
-            cco_version_id = f"CCO-INMEMORY-{uuid.uuid4().hex[:4]}"
 
         if self.db:
             try:
@@ -137,6 +160,7 @@ class TransformationService:
                     detail_level=payload.detail_level,
                     objective=payload.objective,
                     style=payload.style,
+                    custom_instructions=payload.custom_instructions,
                     status="QUEUED",
                 )
                 self.db.add(db_trans)
@@ -159,6 +183,7 @@ class TransformationService:
             "detail_level": payload.detail_level,
             "objective": payload.objective,
             "style": payload.style,
+            "custom_instructions": payload.custom_instructions,
             "status": "QUEUED",
             "progress_percentage": 0,
             "message": "Transformation queued for processing.",
@@ -236,6 +261,7 @@ class TransformationService:
                         "detail_level": db_trans.detail_level,
                         "objective": db_trans.objective,
                         "style": db_trans.style,
+                        "custom_instructions": db_trans.custom_instructions,
                         "status": db_trans.status,
                         "progress_percentage": progress,
                         "message": msg,
