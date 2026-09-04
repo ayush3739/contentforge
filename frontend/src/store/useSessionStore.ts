@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { devtools } from "zustand/middleware";
 import { CCOData, DocumentItem, EvidenceChunk } from "@/types/document";
 import { SessionItem } from "@/types/session";
 
@@ -20,20 +21,26 @@ interface SessionStoreState {
   setSelectedSlideIndex: (index: number) => void;
 }
 
-export const useSessionStore = create<SessionStoreState>((set) => ({
-  currentSession: null,
-  sessionsList: [],
-  documents: [],
-  currentCCO: null,
-  evidenceChunks: [],
-  activeTab: "overview",
-  selectedSlideIndex: 0,
+export const useSessionStore = create<SessionStoreState>()(
+  devtools(
+    (set) => ({
+      currentSession: null,
+      sessionsList: [],
+      documents: [],
+      currentCCO: null,
+      evidenceChunks: [],
+      activeTab: "overview",
+      selectedSlideIndex: 0,
 
-  setCurrentSession: (session) => set({ currentSession: session }),
-  setSessionsList: (sessionsList) => set({ sessionsList }),
-  setDocuments: (documents) => set({ documents }),
-  setCurrentCCO: (currentCCO) => set({ currentCCO }),
-  setEvidenceChunks: (evidenceChunks) => set({ evidenceChunks }),
-  setActiveTab: (activeTab) => set({ activeTab }),
-  setSelectedSlideIndex: (selectedSlideIndex) => set({ selectedSlideIndex }),
-}));
+      setCurrentSession: (session) => set({ currentSession: session }),
+      setSessionsList: (sessionsList) => set({ sessionsList }),
+      setDocuments: (documents) => set({ documents }),
+      setCurrentCCO: (currentCCO) => set({ currentCCO }),
+      setEvidenceChunks: (evidenceChunks) => set({ evidenceChunks }),
+      setActiveTab: (activeTab) => set({ activeTab }),
+      setSelectedSlideIndex: (selectedSlideIndex) => set({ selectedSlideIndex }),
+    }),
+    { name: "SessionStore" }
+  )
+);
+
