@@ -9,7 +9,7 @@ export default function middleware(req: any, event: any) {
   }
 
   // Fail closed in production when Clerk is not configured
-  if (!process.env.CLERK_SECRET_KEY) {
+  if (process.env.NODE_ENV === "production" && !process.env.CLERK_SECRET_KEY) {
     return new NextResponse("Authentication service not configured (missing CLERK_SECRET_KEY)", { status: 500 });
   }
 
@@ -32,7 +32,12 @@ export default function middleware(req: any, event: any) {
       if (error?.digest?.startsWith("NEXT_REDIRECT")) {
         throw error;
       }
-      console.warn("⚠️ Clerk auth error caught:", error);
+      // Fail closed in production on unexpected Clerk errors
+      if (process.env.NODE_ENV === "production") {
+        console.error("Clerk auth middleware error:", error);
+        return new NextResponse("Authentication error", { status: 500 });
+      }
+      console.warn("⚠️ Clerk auth error caught (dev only):", error);
       return NextResponse.next();
     }
   })(req, event);

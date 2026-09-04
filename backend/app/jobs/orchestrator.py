@@ -52,16 +52,19 @@ class TransformationJobOrchestrator:
 
         # Background jobs MUST own their DB session — request-scoped sessions are
         # closed by FastAPI before asyncio.create_task() runs.
+        # NOTE: We pass db=None to run_transformation_pipeline because it uses AsyncSession
+        # internally. Artifact persistence is handled below using our sync session.
         db = new_db_session()
         try:
+            # 1. Update state: PROCESSING
+            self._update_status_with_db(db, transformation_id, "PROCESSING", 15, "Initializing AI execution context.")
 
-        try:
-            # 2. Update state: GENERATING (Call P1 AI Intelligence Engine)
-            self._update_status(transformation_id, "GENERATING", 35, "Generating intelligence artifacts with P1 Engine.")
+            # 2. Update state: GENERATING
+            self._update_status_with_db(db, transformation_id, "GENERATING", 35, "Generating intelligence artifacts with P1 Engine.")
             await asyncio.sleep(0.05)  # Yield loop
 
             from app.ai.pipeline import PipelineTransformRequest, run_transformation_pipeline
-            
+
             sample_content = source_text or (
                 "# ContentForge Sample Briefing\n"
                 "Date: 2026-08-14\n"
@@ -78,8 +81,9 @@ class TransformationJobOrchestrator:
                 detail_level="concise",
             )
 
-            # Call P1 AI pipeline
-            ai_response = await run_transformation_pipeline(req, db=self.db)
+            # Pass db=None: pipeline uses AsyncSession internally which is incompatible
+            # with our sync session. We persist artifacts below using our own session.
+            ai_response = await run_transformation_pipeline(req, db=None)
 
             # 3. Update state: VERIFYING
             self._update_status(transformation_id, "VERIFYING", 70, "Verifying artifact grounding scores.")
@@ -107,7 +111,7 @@ class TransformationJobOrchestrator:
                 await self.storage.put_object(storage_key, binary_content, content_type="application/octet-stream")
 
                 # Store DB record if DB is available
-                if self.db:
+                if db:
                     db_art = Artifact(
                         id=art_id,
                         transformation_request_id=transformation_id,
@@ -119,7 +123,7 @@ class TransformationJobOrchestrator:
                         storage_key=storage_key,
                         checksum=checksum,
                     )
-                    self.db.add(db_art)
+                    db.add(db_art)
 
                     ver_res = VerificationResult(
                         id=f"VER-{uuid.uuid4().hex[:8].upper()}",
@@ -130,7 +134,7 @@ class TransformationJobOrchestrator:
                         unsupported_claim_count=len(art_item.verification.get("unsupported_claims", [])),
                         issues_json=art_item.verification.get("unsupported_claims", []),
                     )
-                    self.db.add(ver_res)
+                    db.add(ver_res)
 
                 created_artifacts.append({
                     "artifact_id": art_id,
@@ -141,14 +145,14 @@ class TransformationJobOrchestrator:
                     "download_url": f"/api/v1/artifacts/{art_id}/download",
                 })
 
-            if self.db:
-                self.db.commit()
+            if db:
+                db.commit()
 
             # 5. Final State: COMPLETED
             final_status = "COMPLETED"
-            self._update_status(transformation_id, final_status, 100, "Transformation completed successfully.", artifacts=created_artifacts)
+            self._update_status_with_db(db, transformation_id, final_status, 100, "Transformation completed successfully.")
             record_audit_event(
-                self.db,
+                db,
                 user_id=user_id,
                 action="TRANSFORMATION_COMPLETED",
                 resource_type="transformation",

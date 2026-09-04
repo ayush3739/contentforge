@@ -131,24 +131,26 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Discreet Guest / Development Bypass */}
-            <div className="w-full mt-6 pt-5 border-t border-slate-100 flex flex-col items-center gap-2">
-              <div className="text-[11px] text-slate-400 font-medium">Development & Local Testing</div>
-              <div className="flex items-center gap-2 w-full">
-                <button
-                  onClick={() => handleGuestEntry("analyst")}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors"
-                >
-                  Enter as Analyst <ArrowRight className="h-3 w-3 text-slate-400" />
-                </button>
-                <button
-                  onClick={() => handleGuestEntry("admin")}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-xs font-semibold text-purple-700 transition-colors"
-                >
-                  Enter as Admin <ArrowRight className="h-3 w-3 text-purple-400" />
-                </button>
+            {/* Discreet Guest / Development Bypass — hidden in production */}
+            {process.env.NODE_ENV !== "production" && (
+              <div className="w-full mt-6 pt-5 border-t border-slate-100 flex flex-col items-center gap-2">
+                <div className="text-[11px] text-slate-400 font-medium">Development & Local Testing</div>
+                <div className="flex items-center gap-2 w-full">
+                  <button
+                    onClick={() => handleGuestEntry("analyst")}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors"
+                  >
+                    Enter as Analyst <ArrowRight className="h-3 w-3 text-slate-400" />
+                  </button>
+                  <button
+                    onClick={() => handleGuestEntry("admin")}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-xs font-semibold text-purple-700 transition-colors"
+                  >
+                    Enter as Admin <ArrowRight className="h-3 w-3 text-purple-400" />
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

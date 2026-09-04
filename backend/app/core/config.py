@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
     # Database (PostgreSQL + pgvector / Neon DB)
-    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/contentforge"
+    # REQUIRED: must be set in .env — e.g. the Neon DB connection string.
+    # No default: app will fail at startup with a clear error if DATABASE_URL is missing.
+    DATABASE_URL: str
 
     @property
     def sync_database_url(self) -> str:

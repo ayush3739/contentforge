@@ -28,7 +28,14 @@ async def get_current_user(
         token = request.headers.get("authorization")
 
     if not token:
-        # Fallback to dev analyst user when no token provided (non-production)
+        # In production, missing token must always be rejected
+        if settings.ENVIRONMENT == "production":
+            raise APIError(
+                code="MISSING_TOKEN",
+                message="Authentication token is required.",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+            )
+        # Dev/test fallback: return a default analyst so local development works without Clerk
         return ClerkUserPayload(
             user_id="USR-DEFAULT-001",
             clerk_id="user_2default_001",
