@@ -96,8 +96,65 @@ async def get_transformation_status(
 
     return TransformationStatusResponse(
         transformation_id=id,
+        session_id=trans.get("session_id"),
         status=trans["status"],
         progress_percentage=trans.get("progress_percentage", 100 if trans["status"] == "COMPLETED" else 50),
         message=trans.get("message", "Transformation processing..."),
         artifacts=trans.get("artifacts", []),
     )
+
+
+@router.get("/{id}/stream", summary="Stream real-time transformation progress via SSE")
+async def stream_transformation_progress(
+    id: str,
+    db: Optional[DBSession] = Depends(get_db),
+):
+    """
+    Streams transformation progress as Server-Sent Events (SSE).
+    Emits real-time milestone transitions ('progress', 'complete', 'error') as text/event-stream.
+    """
+    import asyncio
+    import json
+    from fastapi.responses import StreamingResponse
+
+    async def event_generator():
+        service = TransformationService(db=db)
+        terminal_states = {"COMPLETED", "FAILED", "REVIEW_REQUIRED"}
+
+        for _ in range(120):  # max ~3 minutes
+            trans = service.get_transformation(id)
+            if not trans:
+                yield f"event: error\ndata: {json.dumps({'message': 'Transformation not found'})}\n\n"
+                break
+
+            status_val = trans.get("status", "QUEUED")
+            progress_val = trans.get("progress_percentage", 10)
+            message_val = trans.get("message", "Processing transformation...")
+            artifacts_val = trans.get("artifacts", [])
+
+            data = {
+                "transformation_id": id,
+                "session_id": trans.get("session_id"),
+                "status": status_val,
+                "progress_percentage": progress_val,
+                "message": message_val,
+                "artifacts": artifacts_val,
+            }
+            yield f"event: progress\ndata: {json.dumps(data)}\n\n"
+
+            if status_val in terminal_states:
+                yield f"event: complete\ndata: {json.dumps(data)}\n\n"
+                break
+
+            await asyncio.sleep(1.5)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+

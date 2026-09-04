@@ -41,16 +41,20 @@ export default function TransformationPlanner() {
 
     addToast({ type: "info", title: "Submitting Transformation", message: "Queuing multi-output AI pipeline..." });
 
-    const payload = {
-      session_id: currentSession.id,
-      cco_version_id: "CCO-v2-88412",
-      output_types: selectedOutputTypes,
-      ...params,
-    };
+    try {
+      const payload = {
+        session_id: currentSession.id,
+        // cco_version_id omitted — backend resolves latest active CCO from session
+        output_types: selectedOutputTypes,
+        ...params,
+      };
 
-    const res = await submitTransformation(payload);
-    addToast({ type: "success", title: "Job Enqueued", message: `Transformation ${res.transformation_id} started!` });
-    router.push(`/transformations/${res.transformation_id}`);
+      const res = await submitTransformation(payload);
+      addToast({ type: "success", title: "Job Enqueued", message: `Transformation ${res.transformation_id} started!` });
+      router.push(`/transformations/${res.transformation_id}`);
+    } catch (err: any) {
+      addToast({ type: "error", title: "Submission Failed", message: err.message || "Failed to start transformation pipeline." });
+    }
   };
 
   return (

@@ -11,13 +11,24 @@ export default function NewSessionPage() {
   const router = useRouter();
   const { setCurrentSession } = useSessionStore();
   const { addToast } = useUIStore();
-  const [loadingMessage, setLoadingMessage] = useState("Initializing...");
-
   const [step, setStep] = useState(1);
   const [sessionName, setSessionName] = useState("Incident Briefing Workspace");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState("");
+
+  // Map backend SSE stage keys → user-friendly labels
+  const STAGE_LABELS: Record<string, string> = {
+    fetching: "Retrieving document from storage...",
+    parsing: "Parsing document structure & layout blocks...",
+    deterministic_extraction: "Extracting entities, metrics & rules...",
+    semantic_extraction: "Running semantic AI extraction...",
+    cco_build: "Building Canonical Content Object (CCO v1)...",
+    chunking: "Generating pgvector embeddings...",
+    persisting: "Saving to database...",
+    complete: "Ingestion complete ✓",
+  };
 
   const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -34,23 +45,23 @@ export default function NewSessionPage() {
 
   const handleStartIngestion = async () => {
     setIsUploading(true);
-    setUploadProgress(25);
+    setUploadProgress(5);
+    setUploadStage("Creating session workspace...");
 
     // 1. Create Session
-    setLoadingMessage("Creating session workspace...");
-    setUploadProgress(10);
     const sess = await createSession({ name: sessionName });
     setCurrentSession(sess);
+    setUploadProgress(10);
 
-    // 2. Upload Document with SSE
+    // 2. Upload Document with SSE streaming progress
     if (file) {
-      await uploadDocument(sess.id, file, (progress, message) => {
-        setUploadProgress(10 + Math.floor(progress * 0.9)); // Scale progress to 90%
-        setLoadingMessage(message);
+      await uploadDocument(sess.id, file, (progress, message, stage) => {
+        setUploadProgress(10 + Math.floor(progress * 0.88)); // Scale 0–100 → 10–98%
+        setUploadStage(STAGE_LABELS[stage] || message || "Processing...");
       });
     }
     setUploadProgress(100);
-    setLoadingMessage("Complete!");
+    setUploadStage("Ingestion complete ✓");
     setIsUploading(false);
 
     addToast({ type: "success", title: "Source Document Ingested", message: "Grounded into CCO v1. Now select which artifacts to generate!" });
@@ -120,16 +131,24 @@ export default function NewSessionPage() {
         {isUploading && (
           <div className="space-y-2 pt-2">
             <div className="flex items-center justify-between text-xs text-slate-600">
-              <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Extracting layout blocks & CCO...</span>
-              <span className="font-bold text-blue-700">{uploadProgress}%</span>
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                <span className="font-semibold text-slate-700">Ingesting document...</span>
+              </span>
+              <span className="font-bold text-blue-700 font-mono">{uploadProgress}%</span>
             </div>
-            <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden border border-slate-200">
-              <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+            <div className="w-full bg-slate-100 rounded-full h-2 mb-1 overflow-hidden border border-slate-200">
+              <div
+                className="bg-gradient-to-r from-blue-600 to-blue-400 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${uploadProgress}%` }}
+              />
             </div>
-            <p className="text-xs text-slate-500 flex items-center justify-between">
-              <span>{loadingMessage}</span>
-              <span className="font-mono font-semibold">{uploadProgress}%</span>
-            </p>
+            {uploadStage && (
+              <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                {uploadStage}
+              </p>
+            )}
           </div>
         )}
 

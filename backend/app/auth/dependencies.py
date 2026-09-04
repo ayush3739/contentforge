@@ -11,6 +11,7 @@ from typing import Callable, Optional
 from fastapi import Depends, Header, Request, status
 from app.auth.clerk import ClerkUserPayload, decode_clerk_token
 from app.auth.rbac import has_permission
+from app.core.config import settings
 from app.core.errors import APIError
 
 
@@ -35,12 +36,13 @@ async def get_current_user(
                 message="Authentication token is required.",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
-        # Dev/test fallback: return a default analyst so local development works without Clerk
+        client_email = request.headers.get("x-user-email")
+        client_name = request.headers.get("x-user-name")
         return ClerkUserPayload(
             user_id="USR-DEFAULT-001",
             clerk_id="user_2default_001",
-            username="analyst_dev",
-            email="analyst@contentforge.ai",
+            username=client_name or "analyst_dev",
+            email=client_email or "analyst@contentforge.ai",
             role="analyst",
             permissions=["create_session", "upload_source", "generate", "view_verification"],
         )
@@ -52,6 +54,13 @@ async def get_current_user(
             message="Authentication credentials invalid or expired.",
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
+
+    client_email = request.headers.get("x-user-email")
+    client_name = request.headers.get("x-user-name")
+    if client_email and "@" in client_email:
+        user.email = client_email
+    if client_name:
+        user.username = client_name
 
     return user
 

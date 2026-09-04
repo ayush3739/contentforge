@@ -16,8 +16,10 @@ from app.auth.clerk import ClerkUserPayload
 from app.auth.dependencies import require_permission, require_user
 from app.core.database import get_db
 from app.core.errors import APIError
+from app.schemas.artifact import ArtifactResponse
 from app.schemas.session import SessionCreate, SessionDetailResponse, SessionResponse, SessionUpdate
 from app.services.session_service import SessionService
+from app.services.artifact_service import ArtifactService
 
 router = APIRouter(prefix="/sessions", tags=["Sessions"])
 
@@ -32,7 +34,7 @@ async def create_session(
     Creates a new application session workspace.
     """
     service = SessionService(db=db)
-    return service.create_session(payload, user_id=user.user_id)
+    return service.create_session(payload, user=user)
 
 
 @router.get("", response_model=list[SessionResponse])
@@ -62,6 +64,23 @@ async def get_session(
     if not sess:
         raise APIError("SESSION_NOT_FOUND", f"Session with ID '{id}' does not exist.", status_code=404)
     return sess
+
+
+@router.get("/{id}/artifacts", response_model=list[ArtifactResponse])
+async def get_session_artifacts(
+    id: str,
+    user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
+):
+    """
+    Retrieves all generated artifacts for a session.
+    """
+    service = SessionService(db=db)
+    sess = service.get_session(id)
+    if not sess:
+        raise APIError("SESSION_NOT_FOUND", f"Session with ID '{id}' does not exist.", status_code=404)
+    art_service = ArtifactService(db=db)
+    return art_service.get_artifacts_by_session(id)
 
 
 @router.patch("/{id}", response_model=SessionResponse)

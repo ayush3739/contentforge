@@ -24,6 +24,9 @@
 | `FEAT-SYS-001`| Session DB Persistence, Ingestion Terminal Logging, Post-Ingestion Output Flow & UI Clearance Fix | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-AUTH-002`| Institutional Auth Portal Redesign, Email-Based Role Derivation & Standalone Auth Shell | P2 / P3 | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-SEC-001` | Critical Security & Stability Fixes (DB Session Lifetime, CCO Columns, Auth Bypass, Role Derivation) | Fullstack | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-PIPE-001`| End-to-End Artifact Pipeline: Real Polling, SSE Upload UX, Lazy Sessions & Verified Viewer | Fullstack | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-AUTH-003`| User Identity & Real Email Synchronization with Neon DB Users Table | Fullstack | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-PIPE-002`| Live SSE Transformation Progress Streaming, Robust CCO Resolution & Error State Recovery | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
 | `FEAT-RN-001`| *Example: Executive Summary HTML Renderer*| P4 (Renderers)| `feature/renderer-exec`| 📋 Planned | - |
 
@@ -400,6 +403,108 @@
 
 
 ---
+
+### [FEAT-PIPE-001] End-to-End Artifact Pipeline: Real Polling, SSE Ingestion UX, Lazy Sessions & Verified Viewer
+- **Role / Owner:** Fullstack (P1 / P2 / P3)
+- **Date Added:** 2026-09-04
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Upload Progress & Real SSE Stages:** Wrote SSE stage labels mapping backend events (`fetching`, `parsing`, `deterministic_extraction`, `semantic_extraction`, `cco_build`, `chunking`, `persisting`, `complete`) into live animated badge status indicators on `/sessions/new`.
+  2. **Transformation Planner Dynamic CCO Resolution:** Removed hardcoded `cco_version_id: "CCO-v2-88412"`; the backend `TransformationService` dynamically links the session's active CCO version. Added try/catch and user toast notifications.
+  3. **Real Status Polling on Execution Page:** Replaced the static `setTimeout` with live 2-second polling to `GET /api/v1/transformations/{id}/status`. Shows real multi-step execution progress (`QUEUED`, `PROCESSING`, `GENERATING`, `VERIFYING`, `RENDERING`, `COMPLETED`), generated artifact cards with links, and handles failures cleanly. Added `session_id` to `TransformationStatusResponse`.
+  4. **Dynamic Artifact Loading & Workspace Switcher:** Removed the 200-line static `mockArtifact` constant from `/sessions/[sessionId]`. Implemented `GET /api/v1/sessions/{id}/artifacts` backend route and `fetchSessionArtifacts(id)` frontend method. Added multi-artifact selector strip and zero-artifact empty state CTA.
+  5. **Lazy Session Directory:** Refactored `/sessions` with instant search filtering, graceful loading skeletons, and lightweight metadata cards that load without blocking or rendering `undefined`.
+  6. **Dynamic Artifact Workspace Detail:** Refactored `/artifacts/[artifactId]` to fetch live structured data from `GET /api/v1/artifacts/{id}`, with loading skeletons, 404 fallbacks, and resilient `VerificationPanel` grounding rendering.
+- **Key Modules / Files Modified:**
+  - `backend/app/schemas/transformation.py` (Added `session_id` to status response)
+  - `backend/app/api/v1/transformations.py` (Propagate `session_id` in status route)
+  - `backend/app/api/v1/sessions.py` (Added `GET /{id}/artifacts` endpoint)
+  - `backend/app/services/artifact_service.py` (Added `get_artifacts_by_session`)
+  - `backend/app/core/config.py` (Made `DATABASE_URL` required without silent localhost fallback)
+  - `frontend/src/lib/api.ts` (Added `fetchArtifact`, `fetchArtifactsByTransformation`, `fetchSessionArtifacts`, and SSE stage parsing)
+  - `frontend/src/app/sessions/new/page.tsx` (Live SSE stage labels and smooth progress)
+  - `frontend/src/components/transform/TransformationPlanner.tsx` (Dynamic CCO resolution & error toast)
+  - `frontend/src/app/transformations/[transformationId]/page.tsx` (Real interval polling, artifact cards & session routing)
+  - `frontend/src/app/sessions/[sessionId]/page.tsx` (Removed mockArtifact, wired real session artifacts & empty state)
+  - `frontend/src/app/sessions/page.tsx` (Lazy directory, search filter, skeleton loaders)
+  - `frontend/src/app/artifacts/[artifactId]/page.tsx` (Dynamic fetch with loading/404 states)
+  - `frontend/src/components/verification/VerificationPanel.tsx` (Null-safe claim checks rendering)
+- **How to View & Verify:**
+  - Run backend: `uv run uvicorn app.main:app --port 8000 --reload`
+  - Run frontend: `npm run dev` in `frontend/`
+  - Run test suite: `uv run pytest tests/` (18/18 passing)
+  - Run typecheck: `npx tsc --noEmit` in `frontend/` (0 errors)
+  - Navigate to `http://localhost:3000/sessions/new` -> Ingest a document -> Watch live SSE stage labels update smoothly.
+  - Submit transformation -> Watch real polling progress update through backend phases -> View generated artifact cards.
+  - Open session workspace -> Verify real artifacts render dynamically with switcher, or show empty state if none generated yet.
+
+---
+
+### [FEAT-AUTH-003] User Identity & Real Email Synchronization with Neon DB Users Table
+- **Role / Owner:** Fullstack (P2 / P3)
+- **Date Added:** 2026-09-04
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Root Cause Analysis:** Previously, `create_session(payload, user_id)` in `SessionService` accepted only a `user_id` string and defaulted the user email to `f"{user_id}@contentforge.local"` with name matching `user_id`. When mock/unauthenticated requests came in with fallback ID `"USR-DEFAULT-001"`, it wrote `USR-DEFAULT-001@contentforge.local` into the Neon PostgreSQL `users` table instead of the user's actual email.
+  2. **Clerk Token Enrichment:** Standard Clerk session tokens only carry basic claims (like `sub`) unless custom JWT templates are configured. Updated frontend `getHeaders()` in `frontend/src/lib/api.ts` to inspect `window.Clerk.user` and transmit `X-User-Email` and `X-User-Name` alongside the Bearer token.
+  3. **Backend Auth Header Extraction:** Updated `get_current_user` in `backend/app/auth/dependencies.py` to parse `x-user-email` and `x-user-name` headers and populate them into `ClerkUserPayload`.
+  4. **Database Upsert & Migration:** Added `clerk_id` column to the `users` table (migration `ae0421b2b183_add_clerk_id_to_users`). Updated `SessionService.create_session()` to accept the full `ClerkUserPayload`. When creating or updating users in Neon DB, it persists the real email, full name, and `clerk_id`. If an existing user record has an `@contentforge.local` placeholder, it automatically reconciles and updates it with the real email.
+- **Key Modules / Files Modified:**
+  - `backend/migrations/versions/ae0421b2b183_add_clerk_id_to_users.py` (Alembic migration)
+  - `backend/app/models/user.py` (Added `clerk_id` column to `User` model)
+  - `backend/app/auth/dependencies.py` (Extract `x-user-email` and `x-user-name` headers into `ClerkUserPayload`)
+  - `backend/app/services/session_service.py` (Persist real email, name, clerk_id and update existing placeholder records)
+  - `backend/app/api/v1/sessions.py` (Pass `user=user` to `session_service.create_session`)
+  - `frontend/src/lib/api.ts` (Attach `X-User-Email` and `X-User-Name` from `window.Clerk.user`)
+- **How to View & Verify:**
+  - Check Neon DB users table:
+    ```bash
+    uv run python scripts/audit_neon_db.py
+    ```
+  - Verify that real user emails (e.g. `ayush@contentforge.ai`, `analyst.team@contentforge.ai`) and real names are stored instead of synthetic `@contentforge.local` placeholders.
+
+---
+
+### [FEAT-PIPE-002] Live SSE Transformation Progress Streaming, Robust CCO Resolution & Error State Recovery
+- **Role / Owner:** Fullstack (P1 / P2 / P3)
+- **Date Added:** 2026-09-04
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Root Cause Analysis (Infinite Loader & Foreign Key Violation):**  
+     - Ingestion streaming previously used the FastAPI request session inside the async SSE generator, which closed before persisting blocks and CCO, leaving the document in `failed` state with no CCO.  
+     - Transformation requests submitted from the UI provided `session_id`, but `TransformationService.create_transformation` only resolved CCO from `source_document_id`, falling back to an unpersisted placeholder (`CCO-DEFAULT-xxxx`).  
+     - Inserting artifacts with an invalid `cco_version_id` triggered PostgreSQL `ForeignKeyViolation` and `PendingRollbackError`. Because `db.rollback()` was missing before status update, `FAILED` status was never committed, leaving jobs stuck in `QUEUED (0%)` indefinitely.
+  2. **SSE Streaming for Transformation Progress:**  
+     - Added `GET /api/v1/transformations/{id}/stream` returning `text/event-stream` with real-time milestones (`progress`, `complete`, `error`).
+     - Refactored `frontend/src/app/transformations/[transformationId]/page.tsx` to subscribe via `EventSource` with polling as an automatic fallback, eliminating terminal log spam.
+  3. **Multi-Tier CCO Resolution & Database Safety:**  
+     - Enhanced `TransformationService.create_transformation` to resolve CCOs via `session_id`, `source_document_id`, or latest active DB CCO, and auto-provision a fallback DB CCO if empty, guaranteeing foreign key constraints are never broken.
+  4. **Dedicated DB Session in Ingestion SSE:**  
+     - `IngestionJobOrchestrator.stream_process` now instantiates its own `new_db_session()` so long-running async generation always completes DB persistence.
+  5. **Resilient Failure UI:**  
+     - Added retry and return-to-workspace CTA buttons on the transformation page when a job encounters `FAILED` status.
+- **Key Modules / Files Modified:**
+  - `backend/app/api/v1/transformations.py` (Added `GET /{id}/stream` SSE route)
+  - `backend/app/services/transformation_service.py` (Multi-tier CCO resolution & status progress derivation)
+  - `backend/app/jobs/orchestrator.py` (Dedicated DB session in `stream_process`, rollback before failure updates, and in-memory cache sync)
+  - `frontend/src/lib/api.ts` (Exported `API_BASE_URL`)
+  - `frontend/src/app/transformations/[transformationId]/page.tsx` (EventSource SSE subscription, polling fallback, failure state buttons)
+- **How to View & Verify:**
+  - Run automated tests:
+    ```bash
+    uv run pytest tests/
+    ```
+    (18/18 tests passing)
+  - Run frontend typecheck:
+    ```bash
+    npx tsc --noEmit
+    ```
+    (0 errors)
+  - Submit any transformation from UI or run `test_transformation_flow.py`:
+    Verify job progresses from `QUEUED` -> `PROCESSING` -> `GENERATING` -> `VERIFYING` -> `RENDERING` -> `COMPLETED` and streams over SSE.
 
 <!-- 
 ================================================================================

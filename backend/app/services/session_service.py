@@ -4,7 +4,7 @@ ContentForge AI — Workspace Session Service
 
 import logging
 import uuid
-from typing import Optional
+from typing import Any, Optional
 from sqlalchemy.orm import Session as DBSession
 from app.audit.logger import record_audit_event
 from app.models.session import Session
@@ -22,27 +22,48 @@ class SessionService:
     def __init__(self, db: Optional[DBSession] = None):
         self.db = db
 
-    def create_session(self, payload: SessionCreate, user_id: str) -> dict:
+    def create_session(
+        self,
+        payload: SessionCreate,
+        user_id: Optional[str] = None,
+        user: Optional[Any] = None,
+    ) -> dict:
+        uid = user.user_id if user and user.user_id else (user_id or "USR-DEFAULT-001")
         session_id = f"SES-{uuid.uuid4().hex[:8].upper()}"
-        actual_user_id = user_id
+        actual_user_id = uid
+
+        email = user.email if user and user.email else f"{uid}@contentforge.local"
+        name = user.username if user and user.username else (email.split("@")[0] if "@" in email else uid)
+        clerk_id = user.clerk_id if user and user.clerk_id else uid
+        role = user.role if user and user.role else "analyst"
+
         if self.db:
             try:
-                # Ensure user exists in users table to satisfy foreign key constraint
-                if user_id:
-                    existing_user = self.db.query(User).filter((User.id == user_id) | (User.clerk_id == user_id)).first()
+                # Ensure user exists in users table with real email and name
+                if uid:
+                    existing_user = self.db.query(User).filter(
+                        (User.id == uid) | (User.clerk_id == clerk_id) | (User.email == email)
+                    ).first()
                     if not existing_user:
                         new_user = User(
-                            id=user_id,
-                            clerk_id=user_id,
-                            name=user_id,
-                            email=f"{user_id}@contentforge.local",
-                            role="analyst",
+                            id=uid if len(uid) <= 36 else str(uuid.uuid4()),
+                            clerk_id=clerk_id,
+                            name=name,
+                            email=email,
+                            role=role,
                             status="active",
                         )
                         self.db.add(new_user)
                         self.db.flush()
                         actual_user_id = new_user.id
                     else:
+                        # Update placeholder data if real email or name is now available
+                        if existing_user.email.endswith("@contentforge.local") and not email.endswith("@contentforge.local"):
+                            existing_user.email = email
+                        if (existing_user.name == existing_user.id or existing_user.name.startswith("USR-")) and name:
+                            existing_user.name = name
+                        if clerk_id and not existing_user.clerk_id:
+                            existing_user.clerk_id = clerk_id
                         actual_user_id = existing_user.id
 
                 db_session = Session(
@@ -63,13 +84,13 @@ class SessionService:
         sess_data = {
             "id": session_id,
             "name": payload.name,
-            "created_by": user_id,
+            "created_by": actual_user_id,
             "status": "active",
             "document_count": 0,
             "transformation_count": 0,
         }
         self._in_memory_sessions[session_id] = sess_data
-        record_audit_event(self.db, user_id=user_id, action="SESSION_CREATED", resource_type="session", resource_id=session_id)
+        record_audit_event(self.db, user_id=actual_user_id, action="SESSION_CREATED", resource_type="session", resource_id=session_id)
         return sess_data
 
     def get_session(self, session_id: str) -> Optional[dict]:
@@ -125,27 +146,26 @@ class SessionService:
             try:
                 query = self.db.query(Session)
                 if user_id:
-                    query = query.filter(Session.created_by == user_id)
+                    query = query.filter((Session.created_by == user_id) | (Session.created_by.is_(None)))
                 sessions = query.order_by(Session.created_at.desc()).all()
-                if sessions:
-                    return [
-                        {
-                            "id": s.id,
-                            "name": s.name,
-                            "created_by": s.created_by,
-                            "status": s.status,
-                            "document_count": len(s.documents),
-                            "transformation_count": len(s.transformation_requests),
-                            "created_at": s.created_at,
-                        }
-                        for s in sessions
-                    ]
+                return [
+                    {
+                        "id": s.id,
+                        "name": s.name,
+                        "created_by": s.created_by,
+                        "status": s.status,
+                        "document_count": len(s.documents),
+                        "transformation_count": len(s.transformation_requests),
+                        "created_at": s.created_at,
+                    }
+                    for s in sessions
+                ]
             except Exception as e:
                 logger.error(f"[SESSION] Database query failed for list_sessions: {e}")
         
         items = list(self._in_memory_sessions.values())
         if user_id:
-            return [s for s in items if s.get("created_by") == user_id]
+            return [s for s in items if (s.get("created_by") == user_id or s.get("created_by") is None)]
         return items
 
     def update_session(self, session_id: str, payload: SessionUpdate, user_id: str) -> Optional[dict]:
