@@ -6,6 +6,7 @@ and CCO metadata creation adhering to Section 8 of Specification.
 """
 
 import hashlib
+import logging
 import uuid
 from typing import BinaryIO, Optional
 from sqlalchemy.orm import Session as DBSession
@@ -16,6 +17,8 @@ from app.jobs.worker import dispatch_ingestion_job
 from app.models.cco import CCOVersion
 from app.models.document import Document
 from app.storage import get_storage_provider
+
+logger = logging.getLogger("app.services.document")
 
 ALLOWED_MIME_TYPES = {
     "application/pdf",
@@ -138,6 +141,19 @@ class DocumentService:
             except Exception:
                 self.db.rollback()
 
+        doc_data = {
+            "id": doc_id,
+            "session_id": session_id,
+            "name": filename,
+            "mime_type": mime_type,
+            "version": 1,
+            "checksum": checksum,
+            "storage_key": storage_key,
+            "status": "processing",
+            "created_by": user_id,
+        }
+        self._in_memory_docs[doc_id] = doc_data
+
         record_audit_event(self.db, user_id=user_id, action="UPLOAD", resource_type="document", resource_id=doc_id)
 
         async def sse_event_publisher():
@@ -197,17 +213,29 @@ class DocumentService:
     def get_document_cco(self, doc_id: str) -> Optional[dict]:
         if self.db:
             try:
-                cco = self.db.query(CCOVersion).filter(CCOVersion.document_id == doc_id).order_by(CCOVersion.version.desc()).first()
+                cco = (
+                    self.db.query(CCOVersion)
+                    .filter(CCOVersion.document_id == doc_id)
+                    .order_by(CCOVersion.version_number.desc())
+                    .first()
+                )
                 if cco:
+                    content_hash = (
+                        cco.cco_json.get("metadata", {}).get("content_hash")
+                        if isinstance(cco.cco_json, dict)
+                        else None
+                    )
+                    if not content_hash and cco.document:
+                        content_hash = cco.document.checksum
                     return {
                         "document_id": doc_id,
                         "cco_version_id": cco.id,
-                        "version": cco.version,
-                        "hash": cco.hash,
+                        "version": cco.version_number,
+                        "hash": content_hash or "hash_unavailable",
                         "cco_json": cco.cco_json,
                     }
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"[CCO] Failed to retrieve CCO for document {doc_id}: {e}")
         doc = self.get_document(doc_id)
         if doc:
             return {

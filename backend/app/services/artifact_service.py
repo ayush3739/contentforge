@@ -14,6 +14,8 @@ from app.audit.logger import record_audit_event
 from app.models.artifact import Artifact, VerificationResult
 from app.schemas.artifact import ArtifactFinalizeRequest, ArtifactReviseRequest
 from app.storage import get_storage_provider
+from app.renderers.pptx_renderer import render_presentation
+from app.renderers.docx_renderer import render_document
 
 
 class ArtifactService:
@@ -74,23 +76,30 @@ class ArtifactService:
         if not art:
             return None
 
-        storage_key = art.get("storage_key")
-        filename = art.get("filename", f"artifact_{artifact_id}.bin")
-        mime_type = "application/octet-stream"
-        if filename.endswith(".pptx"):
-            mime_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-        elif filename.endswith(".pdf"):
-            mime_type = "application/pdf"
-        elif filename.endswith(".docx"):
-            mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-
-        if storage_key:
-            content = await self.storage.get_object(storage_key)
-            if content:
-                return content, filename, mime_type
-
-        dummy_content = f"ContentForge AI Rendered Artifact Content\nArtifact ID: {artifact_id}\nType: {art.get('type')}\nStatus: {art.get('status')}".encode("utf-8")
-        return dummy_content, filename, "text/plain"
+        artifact_type = art.get("type", "")
+        content_json = art.get("content_json", {})
+        
+        try:
+            if artifact_type == "presentation":
+                content = render_presentation(content_json)
+                filename = f"{artifact_id}.pptx"
+                mime_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            elif artifact_type in ["executive_summary", "advisory"]:
+                content = render_document(content_json)
+                filename = f"{artifact_id}.docx"
+                mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            else:
+                import json
+                content = json.dumps(content_json, indent=2).encode('utf-8')
+                filename = f"{artifact_id}.json"
+                mime_type = "application/json"
+                
+            return content, filename, mime_type
+            
+        except Exception as e:
+            # Fallback to dummy content if rendering fails
+            dummy_content = f"ContentForge AI Rendered Artifact Content\nArtifact ID: {artifact_id}\nType: {artifact_type}\nError: {e}".encode("utf-8")
+            return dummy_content, f"{artifact_id}.txt", "text/plain"
 
     def verify_artifact(self, artifact_id: str, user_id: str) -> dict:
         art = self.get_artifact(artifact_id)

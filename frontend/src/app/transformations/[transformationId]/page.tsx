@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSessionStore } from "@/store/useSessionStore";
 import { fetchTransformationStatus } from "@/lib/api";
 import { Cpu, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 
-export default function TransformationProgressPage({ params }: { params: { transformationId: string } }) {
+export default function TransformationProgressPage({ params }: { params: Promise<{ transformationId: string }> }) {
+  const { transformationId } = use(params);
   const router = useRouter();
+  const { currentSession } = useSessionStore();
   const [statusState, setStatusState] = useState<any>({
-    transformation_id: params.transformationId,
+    transformation_id: transformationId,
     status: "PROCESSING",
     progress_percentage: 45,
     message: "Generating structured outputs & slide schemas...",
@@ -17,7 +20,7 @@ export default function TransformationProgressPage({ params }: { params: { trans
   useEffect(() => {
     const timer = setTimeout(() => {
       setStatusState({
-        transformation_id: params.transformationId,
+        transformation_id: transformationId,
         status: "COMPLETED",
         progress_percentage: 100,
         message: "Transformation processing completed!",
@@ -29,7 +32,7 @@ export default function TransformationProgressPage({ params }: { params: { trans
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, [params.transformationId]);
+  }, [transformationId]);
 
   const steps = [
     { label: "QUEUED", done: true },
@@ -43,28 +46,28 @@ export default function TransformationProgressPage({ params }: { params: { trans
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <span className="font-mono text-xs text-cyan-400 font-bold uppercase">{params.transformationId}</span>
-        <h1 className="text-xl font-bold text-slate-100 mt-0.5">Transformation Engine Execution</h1>
-        <p className="text-xs text-slate-400 mt-1">Multi-output transformation pipeline running background jobs</p>
+        <span className="font-mono text-xs text-blue-700 font-bold uppercase">{transformationId}</span>
+        <h1 className="text-xl font-bold text-slate-900 mt-0.5">Transformation Engine Execution</h1>
+        <p className="text-xs text-slate-500 mt-1">Multi-output transformation pipeline running background jobs</p>
       </div>
 
-      <div className="p-8 rounded-3xl border border-slate-800 bg-slate-900/60 space-y-6">
+      <div className="p-8 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-6">
         {/* Progress Bar Header */}
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             {statusState.status === "COMPLETED" ? (
-              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
             ) : (
-              <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
             )}
-            <span className="font-bold text-slate-200">{statusState.message}</span>
+            <span className="font-bold text-slate-800">{statusState.message}</span>
           </div>
-          <span className="font-mono font-bold text-cyan-400 text-sm">{statusState.progress_percentage}%</span>
+          <span className="font-mono font-bold text-blue-700 text-sm">{statusState.progress_percentage}%</span>
         </div>
 
-        <div className="h-3 w-full rounded-full bg-slate-950 overflow-hidden border border-slate-800">
+        <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden border border-slate-200">
           <div
-            className="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400 transition-all duration-500"
+            className="h-full bg-gradient-to-r from-blue-600 to-emerald-500 transition-all duration-500"
             style={{ width: `${statusState.progress_percentage}%` }}
           />
         </div>
@@ -76,8 +79,8 @@ export default function TransformationProgressPage({ params }: { params: { trans
               key={idx}
               className={`p-2.5 rounded-xl border text-center text-[10px] font-bold font-mono transition-all ${
                 s.done
-                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                  : "bg-slate-950/40 text-slate-500 border-slate-800"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-slate-50 text-slate-400 border-slate-200"
               }`}
             >
               {s.label}
@@ -87,10 +90,10 @@ export default function TransformationProgressPage({ params }: { params: { trans
 
         {/* Action button when completed */}
         {statusState.status === "COMPLETED" && (
-          <div className="flex justify-end pt-4 border-t border-slate-800">
+          <div className="flex justify-end pt-4 border-t border-slate-100">
             <button
-              onClick={() => router.push("/sessions/SES-INCIDENT-88412")}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-xs shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-cyan-400 transition-all"
+              onClick={() => router.push(`/sessions/${currentSession?.id || "SES-INCIDENT-88412"}?view=artifacts`)}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all"
             >
               Open Artifact Workspace <ArrowRight className="h-4 w-4" />
             </button>

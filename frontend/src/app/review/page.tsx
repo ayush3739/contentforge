@@ -8,8 +8,8 @@ export default function ReviewQueuePage() {
     <RoleGuard allowedRoles={["reviewer", "admin"]}>
       <div className="space-y-6 max-w-7xl mx-auto">
         <div>
-          <h1 className="text-xl font-bold text-slate-100">Reviewer Approval Queue</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Human sign-off workspace for flagged claims and grounding verification reports</p>
+          <h1 className="text-xl font-bold text-slate-900">Reviewer Approval Queue</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Human sign-off workspace for flagged claims and grounding verification reports</p>
         </div>
 
         <ReviewQueueTable />

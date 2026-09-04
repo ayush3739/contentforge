@@ -77,6 +77,10 @@ RETRIEVED EVIDENCE CHUNKS (VERIFICATION BASIS):
 INSTRUCTION:
 Generate the complete, verified, structured JSON representation for this {plan.artifact_type}.
 Ensure all facts strictly match the CCO and evidence provided above.
+CRITICAL QUALITY DIRECTIVES:
+- Write with the authoritative, articulate tone of a senior enterprise advisor or government communications director.
+- Provide substantive, multi-dimensional narrative depth (concrete findings, technical nuances, exact metrics, and operational impact).
+- Avoid robotic, generic, or superficial one-liners. Ensure the output feels natural, polished, and ready for publication or executive presentation.
 """
 
     return [

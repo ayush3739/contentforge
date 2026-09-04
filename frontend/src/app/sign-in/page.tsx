@@ -1,19 +1,20 @@
 "use client";
 
 import { SignIn } from "@clerk/nextjs";
-import { Flame } from "lucide-react";
 
 export default function SignInPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[85vh] p-4">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-400 text-white font-bold shadow-lg shadow-blue-500/20">
-          <Flame className="h-6 w-6" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-slate-100">CONTENTFORGE AI</h1>
-          <p className="text-[10px] text-cyan-400 font-mono">Sign in to your Clerk account</p>
-        </div>
+      <div className="flex flex-col items-center mb-6 text-center">
+        <img
+          src="/logo.png"
+          alt="ContentForge AI"
+          className="h-16 w-16 object-contain drop-shadow-xs mb-2"
+        />
+        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
+          ContentForge <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-black">AI</span>
+        </h1>
+        <p className="text-xs text-slate-500 font-mono mt-0.5">Sign in to your Clerk account</p>
       </div>
 
       <SignIn
@@ -23,8 +24,8 @@ export default function SignInPage() {
         fallbackRedirectUrl="/dashboard"
         appearance={{
           elements: {
-            card: "bg-slate-900/90 border border-slate-800 shadow-2xl rounded-3xl p-6",
-            formButtonPrimary: "bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2.5 rounded-xl",
+            card: "bg-white border border-slate-200 shadow-xl rounded-3xl p-6",
+            formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-xs",
           },
         }}
       />

@@ -204,15 +204,18 @@ class IngestionJobOrchestrator:
             blocks = parse_document(content_bytes, filename=filename, mime_type=mime_type)
             if not blocks:
                 raise ValueError("No extractable text found in document")
+            logger.info(f"[INGESTION-WORKER] Parsed {len(blocks)} layout blocks from '{filename}'")
             
             # Extract full text
             full_text = "\n\n".join(b["text"] for b in blocks if "text" in b)
 
             # 3. Deterministic Extraction
             deterministic_data = extract_deterministic_data(full_text)
+            logger.info(f"[INGESTION-WORKER] Deterministic extraction extracted rules & entities")
 
             # 4. Semantic Extraction
             semantic_data = await extract_semantic_data(full_text)
+            logger.info(f"[INGESTION-WORKER] Semantic extraction extracted {len(semantic_data.get('claims', []))} claims")
 
             # 5. Build CCO
             cco_dict = build_cco(
@@ -222,11 +225,13 @@ class IngestionJobOrchestrator:
                 deterministic_data=deterministic_data,
                 semantic_data=semantic_data
             )
+            logger.info(f"[INGESTION-WORKER] CCO built (hash: {cco_dict.get('hash', '')[:16]}...)")
             
             # 6. Chunk and Embed
             chunks = chunk_blocks(blocks)
             texts_to_embed = [c["text"] for c in chunks]
             embeddings = embed_batch(texts_to_embed)
+            logger.info(f"[INGESTION-WORKER] Generated {len(chunks)} chunks & embeddings")
 
             # 7. Persist to DB
             if self.db:
@@ -274,9 +279,9 @@ class IngestionJobOrchestrator:
                     db_doc.status = "ready"
 
                 self.db.commit()
-                logger.info(f"[JOB-ORCHESTRATOR] Ingestion completed for {document_id}")
+                logger.info(f"[INGESTION-WORKER] Successfully committed document {document_id} and CCO {cco_id} to PostgreSQL database.")
         except Exception as e:
-            logger.error(f"[JOB-ORCHESTRATOR] Ingestion failed for {document_id}: {str(e)}")
+            logger.error(f"[INGESTION-WORKER] Ingestion failed for {document_id}: {str(e)}")
             if self.db:
                 self.db.rollback()
                 db_doc = self.db.query(Document).filter(Document.id == document_id).first()
@@ -292,25 +297,32 @@ class IngestionJobOrchestrator:
         filename: str,
         mime_type: str,
     ):
-        logger.info(f"[JOB-ORCHESTRATOR] Starting streaming ingestion job for document {document_id}")
+        logger.info(f"=================================================================")
+        logger.info(f"[INGESTION] Starting streaming ingestion job for document: '{filename}'")
+        logger.info(f"[INGESTION] Document ID: {document_id} | Session ID: {session_id}")
+        logger.info(f"=================================================================")
         
         try:
             yield {"event": "progress", "data": {"stage": "fetching", "message": "Fetching document from storage"}}
             content_bytes = await self.storage.get_object(storage_key)
             if not content_bytes:
                 raise ValueError("Could not retrieve document from storage")
+            logger.info(f"[INGESTION] 1/6: Fetched {len(content_bytes)} bytes from storage key '{storage_key}'")
 
             yield {"event": "progress", "data": {"stage": "parsing", "message": "Parsing document text and blocks"}}
             blocks = parse_document(content_bytes, filename=filename, mime_type=mime_type)
             if not blocks:
                 raise ValueError("No extractable text found in document")
             full_text = "\n\n".join(b["text"] for b in blocks if "text" in b)
+            logger.info(f"[INGESTION] 2/6: Parsed {len(blocks)} layout blocks from document ({len(full_text)} characters text).")
 
             yield {"event": "progress", "data": {"stage": "deterministic_extraction", "message": "Extracting deterministic rules and metrics"}}
             deterministic_data = extract_deterministic_data(full_text)
+            logger.info(f"[INGESTION] 3/6: Deterministic extraction found {len(deterministic_data.get('entities', []))} entities & {len(deterministic_data.get('metrics', []))} metrics.")
 
             yield {"event": "progress", "data": {"stage": "semantic_extraction", "message": "Extracting semantic claims via LLM"}}
             semantic_data = await extract_semantic_data(full_text)
+            logger.info(f"[INGESTION] 4/6: Semantic extraction extracted {len(semantic_data.get('claims', []))} verified claims via LLM.")
 
             yield {"event": "progress", "data": {"stage": "cco_build", "message": "Building Canonical Content Object"}}
             cco_dict = build_cco(
@@ -320,11 +332,13 @@ class IngestionJobOrchestrator:
                 deterministic_data=deterministic_data,
                 semantic_data=semantic_data
             )
+            logger.info(f"[INGESTION] 5/6: Built Canonical Content Object (CCO v1) hash: {cco_dict.get('hash', 'N/A')[:16]}... with integrity {cco_dict.get('grounding_score', 1.0)*100:.1f}%")
             
             yield {"event": "progress", "data": {"stage": "chunking", "message": "Generating pgvector embeddings"}}
             chunks = chunk_blocks(blocks)
             texts_to_embed = [c["text"] for c in chunks]
             embeddings = embed_batch(texts_to_embed)
+            logger.info(f"[INGESTION] 6/6: Generated {len(chunks)} text chunks and {len(embeddings)} pgvector embeddings.")
 
             yield {"event": "progress", "data": {"stage": "persisting", "message": "Persisting to database"}}
             if self.db:
@@ -372,10 +386,13 @@ class IngestionJobOrchestrator:
                     db_doc.status = "ready"
 
                 self.db.commit()
+                logger.info(f"[INGESTION] Persisted CCO {cco_id}, {len(blocks)} source blocks, and {len(chunks)} embeddings to PostgreSQL database.")
             
+            logger.info(f"[INGESTION] Ingestion pipeline successfully COMPLETED for document {document_id}!")
+            logger.info(f"=================================================================")
             yield {"event": "complete", "data": {"stage": "complete", "message": "Ingestion fully completed", "document_id": document_id}}
         except Exception as e:
-            logger.error(f"[JOB-ORCHESTRATOR] Ingestion failed for {document_id}: {str(e)}")
+            logger.error(f"[INGESTION] Ingestion failed for {document_id}: {str(e)}")
             if self.db:
                 self.db.rollback()
                 db_doc = self.db.query(Document).filter(Document.id == document_id).first()

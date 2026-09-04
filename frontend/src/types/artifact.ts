@@ -35,4 +35,5 @@ export interface ArtifactItem {
   content_json: Record<string, any>;
   verification: VerificationReport;
   created_at?: string;
+  available_formats?: string[];
 }
