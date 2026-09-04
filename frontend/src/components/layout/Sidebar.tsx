@@ -85,14 +85,14 @@ export default function Sidebar() {
           {sidebarOpen && (
             <div className="flex flex-col min-w-0 transition-opacity duration-200">
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-slate-900 text-sm tracking-tight leading-none">
+                <span className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight leading-none">
                   ContentForge
                 </span>
-                <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[9px] font-black uppercase tracking-wider">
+                <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[9px] font-black uppercase tracking-wider">
                   AI
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono tracking-wider mt-1 truncate">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono tracking-wider mt-1 truncate">
                 ENGINE SIH26154
               </span>
             </div>
@@ -100,7 +100,7 @@ export default function Sidebar() {
         </Link>
         <button
           onClick={toggleSidebar}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -111,7 +111,7 @@ export default function Sidebar() {
       <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
         <div className="space-y-1">
           {sidebarOpen && (
-            <div className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+            <div className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
               Workspace Menu
             </div>
           )}
@@ -127,19 +127,19 @@ export default function Sidebar() {
                   className={cn(
                     "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all group relative",
                     isActive
-                      ? "bg-blue-50 text-blue-700 border border-blue-200 font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
                   )}
                 >
                   <Icon
                     className={cn(
                       "h-4 w-4 shrink-0 transition-transform group-hover:scale-105",
-                      isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
+                      isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-200"
                     )}
                   />
                   {sidebarOpen && <span className="truncate">{item.label}</span>}
                   {item.badge && sidebarOpen && (
-                    <span className="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                    <span className="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                       {item.badge}
                     </span>
                   )}
@@ -150,13 +150,13 @@ export default function Sidebar() {
 
         {/* Admin Section */}
         {isAdmin && (
-          <div className="space-y-1 border-t border-slate-200 pt-4">
+          <div className="space-y-1 border-t border-slate-200 dark:border-slate-800 pt-4">
             {sidebarOpen && (
               <div className="flex items-center justify-between px-3 mb-2">
-                <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
                   Governance & Audit
                 </span>
-                <Lock className="h-3 w-3 text-purple-600" />
+                <Lock className="h-3 w-3 text-purple-600 dark:text-purple-400" />
               </div>
             )}
             {adminItems.map((item) => {
@@ -169,14 +169,14 @@ export default function Sidebar() {
                   className={cn(
                     "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all group",
                     isActive
-                      ? "bg-purple-50 text-purple-700 border border-purple-200 font-bold shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      ? "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-bold shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
                   )}
                 >
                   <Icon
                     className={cn(
                       "h-4 w-4 shrink-0",
-                      isActive ? "text-purple-600" : "text-slate-400 group-hover:text-slate-600"
+                      isActive ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-200"
                     )}
                   />
                   {sidebarOpen && <span className="truncate">{item.label}</span>}
@@ -198,14 +198,14 @@ export default function Sidebar() {
               </span>
             </div>
             <div className="font-bold text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+              <Sparkles className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
               <span className="truncate">{displayName}</span>
             </div>
             <div className="flex items-center gap-2 mt-1">
               <ThemeToggle className="flex-1 text-xs py-1.5" />
               <button
                 onClick={handleLogout}
-                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-colors shadow-2xs cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 font-bold text-xs transition-colors shadow-2xs cursor-pointer"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 <span>Log Out</span>
@@ -216,7 +216,7 @@ export default function Sidebar() {
           <button
             onClick={handleLogout}
             title="Log Out"
-            className="flex items-center justify-center p-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors shadow-2xs cursor-pointer"
+            className="flex items-center justify-center p-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 transition-colors shadow-2xs cursor-pointer"
           >
             <LogOut className="h-4 w-4" />
           </button>

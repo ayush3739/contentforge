@@ -53,33 +53,33 @@ export default function SocialPostViewer({ content }: SocialPostViewerProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8 max-w-4xl mx-auto">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 space-y-8 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 font-mono">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-mono">
               Social Communication Package
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono flex items-center gap-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono flex items-center gap-1">
               <ShieldCheck className="h-3 w-3" /> CCO Grounded
             </span>
           </div>
-          <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-          <p className="text-xs text-slate-500 mt-1 font-mono">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
             Audience: {content?.target_audience || "Industry Partners & Public Stakeholders"}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Platform Toggle */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs">
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
             <button
               onClick={() => setPlatform("linkedin")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
                 platform === "linkedin"
-                  ? "bg-white text-blue-700 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
@@ -91,8 +91,8 @@ export default function SocialPostViewer({ content }: SocialPostViewerProps) {
               onClick={() => setPlatform("twitter")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
                 platform === "twitter"
-                  ? "bg-white text-blue-700 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
@@ -115,49 +115,49 @@ export default function SocialPostViewer({ content }: SocialPostViewerProps) {
       {/* Social Post Preview Simulator */}
       {platform === "linkedin" ? (
         /* LinkedIn Style Card */
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden max-w-2xl mx-auto">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden max-w-2xl mx-auto">
           {/* Author Bar */}
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="ContentForge AI" className="h-10 w-10 rounded-full border border-slate-200 p-1" />
+              <img src="/logo.png" alt="ContentForge AI" className="h-10 w-10 rounded-full border border-slate-200 dark:border-slate-700 p-1" />
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-slate-900 text-sm">ContentForge Official</span>
-                  <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1.5 py-0.2 rounded border border-blue-100">
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">ContentForge Official</span>
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.2 rounded border border-blue-100 dark:border-blue-800">
                     VERIFIED ORG
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500">Public Sector Cybersecurity & Incident Operations • Just now</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Public Sector Cybersecurity & Incident Operations • Just now</p>
               </div>
             </div>
-            <span className="text-xs text-slate-400 font-mono">🌐 Public</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">🌐 Public</span>
           </div>
 
           {/* Post Content */}
-          <div className="p-5 space-y-4 text-xs text-slate-800 leading-relaxed font-sans">
-            <p className="font-bold text-sm text-slate-900">{hook}</p>
+          <div className="p-5 space-y-4 text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-sans">
+            <p className="font-bold text-sm text-slate-900 dark:text-white">{hook}</p>
             <p className="whitespace-pre-line">{body}</p>
 
             {/* Key Takeaways Highlight Box */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-              <span className="font-bold text-slate-900 text-[11px] uppercase tracking-wider block">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+              <span className="font-bold text-slate-900 dark:text-white text-[11px] uppercase tracking-wider block">
                 Verified Key Findings
               </span>
               <ul className="space-y-1.5">
                 {takeaways.map((t, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-slate-700">
-                    <span className="text-blue-600 font-bold">•</span>
+                  <li key={idx} className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <span className="text-blue-600 dark:text-blue-400 font-bold">•</span>
                     <span>{t}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <p className="font-semibold text-slate-900">{callToAction}</p>
+            <p className="font-semibold text-slate-900 dark:text-slate-100">{callToAction}</p>
 
             <div className="flex flex-wrap gap-1.5 pt-2">
               {hashtags.map((h, idx) => (
-                <span key={idx} className="text-blue-600 hover:underline font-semibold cursor-pointer">
+                <span key={idx} className="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer">
                   {h}
                 </span>
               ))}
@@ -165,54 +165,54 @@ export default function SocialPostViewer({ content }: SocialPostViewerProps) {
           </div>
 
           {/* LinkedIn Interactive Bar Simulation */}
-          <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between text-xs text-slate-500">
-            <span className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer">
+          <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span className="flex items-center gap-1.5 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer">
               <ThumbsUp className="h-4 w-4" /> Like
             </span>
-            <span className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer">
+            <span className="flex items-center gap-1.5 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer">
               <MessageSquare className="h-4 w-4" /> Comment
             </span>
-            <span className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer">
+            <span className="flex items-center gap-1.5 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer">
               <Repeat className="h-4 w-4" /> Repost
             </span>
-            <span className="flex items-center gap-1.5 hover:text-blue-600 cursor-pointer">
+            <span className="flex items-center gap-1.5 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer">
               <Send className="h-4 w-4" /> Share
             </span>
           </div>
         </div>
       ) : (
         /* X / Twitter Style Thread */
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden max-w-2xl mx-auto divide-y divide-slate-100">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden max-w-2xl mx-auto divide-y divide-slate-100 dark:divide-slate-800">
           {/* Tweet 1 */}
           <div className="p-5 flex gap-3">
-            <img src="/logo.png" alt="ContentForge AI" className="h-10 w-10 rounded-full border border-slate-200 p-1 shrink-0" />
-            <div className="space-y-2 text-xs text-slate-800">
+            <img src="/logo.png" alt="ContentForge AI" className="h-10 w-10 rounded-full border border-slate-200 dark:border-slate-700 p-1 shrink-0" />
+            <div className="space-y-2 text-xs text-slate-800 dark:text-slate-200">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-slate-900">ContentForge AI</span>
-                <span className="text-slate-400 font-mono">@contentforge_ai · 1m</span>
+                <span className="font-bold text-slate-900 dark:text-white">ContentForge AI</span>
+                <span className="text-slate-400 dark:text-slate-500 font-mono">@contentforge_ai · 1m</span>
               </div>
-              <p className="font-semibold text-slate-900 text-sm">{hook}</p>
+              <p className="font-semibold text-slate-900 dark:text-white text-sm">{hook}</p>
               <p>{body}</p>
-              <div className="text-[10px] text-blue-600 font-mono">1/2 🧵</div>
+              <div className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">1/2 🧵</div>
             </div>
           </div>
 
           {/* Tweet 2 */}
-          <div className="p-5 flex gap-3 bg-slate-50/50">
-            <img src="/logo.png" alt="ContentForge AI" className="h-10 w-10 rounded-full border border-slate-200 p-1 shrink-0" />
-            <div className="space-y-2 text-xs text-slate-800">
+          <div className="p-5 flex gap-3 bg-slate-50/50 dark:bg-slate-800/40">
+            <img src="/logo.png" alt="ContentForge AI" className="h-10 w-10 rounded-full border border-slate-200 dark:border-slate-700 p-1 shrink-0" />
+            <div className="space-y-2 text-xs text-slate-800 dark:text-slate-200">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-slate-900">ContentForge AI</span>
-                <span className="text-slate-400 font-mono">@contentforge_ai · 1m</span>
+                <span className="font-bold text-slate-900 dark:text-white">ContentForge AI</span>
+                <span className="text-slate-400 dark:text-slate-500 font-mono">@contentforge_ai · 1m</span>
               </div>
               <p className="font-medium">Remediation milestones:</p>
-              <ul className="space-y-1 text-slate-700">
+              <ul className="space-y-1 text-slate-700 dark:text-slate-300">
                 {takeaways.map((t, idx) => (
                   <li key={idx}>✅ {t}</li>
                 ))}
               </ul>
               <p className="pt-2">{callToAction} {hashtags.slice(0, 3).join(" ")}</p>
-              <div className="text-[10px] text-blue-600 font-mono">2/2 🏁</div>
+              <div className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">2/2 🏁</div>
             </div>
           </div>
         </div>

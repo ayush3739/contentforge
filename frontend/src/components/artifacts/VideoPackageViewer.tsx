@@ -44,27 +44,27 @@ export default function VideoPackageViewer({ content }: VideoPackageViewerProps)
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8 max-w-5xl mx-auto">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 space-y-8 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 font-mono">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 font-mono">
               Video Package Storyboard
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono flex items-center gap-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono flex items-center gap-1">
               <ShieldCheck className="h-3 w-3" /> Grounded In CCO
             </span>
           </div>
-          <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-          <p className="text-xs text-slate-500 mt-1 font-mono">Total Estimated Runtime: 00:24 • Target: Stakeholder Social & Web Broadcast</p>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">Total Estimated Runtime: 00:24 • Target: Stakeholder Social & Web Broadcast</p>
         </div>
 
         <button
           onClick={() => window.print()}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-xs w-fit"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors shadow-xs w-fit"
         >
-          <Download className="h-4 w-4 text-slate-500" /> Export Script & Cues
+          <Download className="h-4 w-4 text-slate-500 dark:text-slate-400" /> Export Script & Cues
         </button>
       </div>
 
@@ -73,41 +73,41 @@ export default function VideoPackageViewer({ content }: VideoPackageViewerProps)
         {scenes.map((scene, idx) => (
           <div
             key={idx}
-            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4 hover:border-blue-300 transition-all"
+            className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-6 shadow-xs space-y-4 hover:border-blue-300 dark:hover:border-blue-700 transition-all"
           >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-xs">
                   {scene.scene_number}
                 </span>
-                <span className="text-sm font-bold text-slate-900">Scene {scene.scene_number}</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">Scene {scene.scene_number}</span>
               </div>
-              <span className="px-2.5 py-1 rounded-md bg-slate-100 font-mono text-xs font-semibold text-slate-600 flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-blue-600" /> {scene.duration_range}
+              <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 font-mono text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 border border-slate-200 dark:border-slate-700">
+                <Clock className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /> {scene.duration_range}
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Visual Direction */}
-              <div className="space-y-2 p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <Eye className="h-4 w-4 text-purple-600" /> Visual Direction & Motion Design
+              <div className="space-y-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
+                  <Eye className="h-4 w-4 text-purple-600 dark:text-purple-400" /> Visual Direction & Motion Design
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed">{scene.visual_direction}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{scene.visual_direction}</p>
                 {scene.on_screen_text && (
-                  <div className="mt-3 pt-2 border-t border-slate-200 text-[11px]">
-                    <span className="text-slate-400 font-medium">On-Screen Overlay: </span>
-                    <strong className="text-blue-700 font-mono">{scene.on_screen_text}</strong>
+                  <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px]">
+                    <span className="text-slate-400 dark:text-slate-500 font-medium">On-Screen Overlay: </span>
+                    <strong className="text-blue-700 dark:text-blue-300 font-mono">{scene.on_screen_text}</strong>
                   </div>
                 )}
               </div>
 
               {/* Voiceover Teleprompter */}
-              <div className="space-y-2 p-4 rounded-xl bg-blue-50/50 border border-blue-100">
-                <div className="flex items-center gap-2 text-xs font-bold text-blue-900">
-                  <Mic className="h-4 w-4 text-blue-600" /> Voiceover Narration (Spoken Script)
+              <div className="space-y-2 p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/60">
+                <div className="flex items-center gap-2 text-xs font-bold text-blue-900 dark:text-blue-200">
+                  <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Voiceover Narration (Spoken Script)
                 </div>
-                <p className="text-xs text-slate-800 leading-relaxed italic font-serif text-sm">
+                <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed italic font-serif text-sm">
                   &ldquo;{scene.voiceover_script}&rdquo;
                 </p>
               </div>

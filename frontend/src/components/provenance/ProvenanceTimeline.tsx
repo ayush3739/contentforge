@@ -8,7 +8,7 @@ export default function ProvenanceTimeline() {
 
   const sessionName = currentSession?.name || "Workspace Session";
   const sessionId = currentSession?.id || "SES-001";
-  const docName = currentSession?.documents?.[0]?.name || `${sessionName}_Source.pdf`;
+  const docName = (currentSession as any)?.documents?.[0]?.name || `${sessionName}_Source.pdf`;
 
   const steps = [
     { title: "Source Document Ingestion", desc: `${docName} (SHA-256: ${currentCCO?.hash?.slice(0, 16) || "a891f42e391b002c..."})`, status: "Anchored", icon: FileText, color: "text-blue-600" },

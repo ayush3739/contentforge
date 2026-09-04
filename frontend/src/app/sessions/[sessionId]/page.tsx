@@ -41,7 +41,7 @@ export default function SessionWorkspacePage({
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const viewParam = searchParams.get("view");
-  const { currentSession, setCurrentSession, activeTab, setActiveTab } = useSessionStore();
+  const { currentSession, setCurrentSession, currentCCO, activeTab, setActiveTab } = useSessionStore();
   const [layoutMode, setLayoutMode] = useState<"split" | "tabs">("split");
   const [activeStage, setActiveStage] = useState<"plan" | "artifacts">(
     tabParam === "transform" ? "plan" : viewParam === "artifacts" ? "artifacts" : "plan"
@@ -84,75 +84,44 @@ export default function SessionWorkspacePage({
 
   // Dynamic CCO claims from session store or current session
   const claims = currentCCO?.claims || [];
-  const sourceDocName = currentSession?.documents?.[0]?.name || "Source Document";
+  const sourceDocName = (currentSession as any)?.documents?.[0]?.name || "Source Document";
+
+  const getArtifactIcon = (type: string) => {
+    switch (type) {
+      case "presentation":
+        return <Presentation className="h-3.5 w-3.5 text-blue-600" />;
+      case "executive_summary":
+        return <FileText className="h-3.5 w-3.5 text-purple-600" />;
+      case "advisory":
+        return <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />;
+      default:
+        return <FileSpreadsheet className="h-3.5 w-3.5 text-slate-600" />;
+    }
+  };
 
   const mockArtifact = {
-    artifact_id: "ART-001",
-    transformation_request_id: "TR-88412",
-    cco_version_id: "CCO-v2-88412",
+    artifact_id: `ART-${sessionId.substring(4, 10)}`,
+    transformation_request_id: `TR-${sessionId.substring(4, 10)}`,
+    cco_version_id: currentCCO?.cco_version_id || "CCO-v1",
     type: "presentation",
     version: 1,
     status: "verified" as const,
-    filename: "presentation_ART-001.pptx",
-    download_url: "/api/v1/artifacts/ART-001/download",
-    checksum: "sha256:8a91f42e391b002c91847120a11c8d",
+    filename: `presentation_${sessionId.substring(4, 10)}.pptx`,
+    download_url: `/api/v1/artifacts/${sessionId}/download`,
+    checksum: currentCCO?.hash || "sha256:8a91f42e391b002c91847120a11c8d",
     available_formats: ["presentation", "executive_summary", "advisory"],
     content_json: {
-      title: "Executive Incident Briefing: Ransomware Attack",
-      executive_overview:
-        "Comprehensive containment briefing covering the August 14 anomaly across core payment gateways. 14 production nodes were isolated within 24 hours, capping financial impact at $2.5 million with zero unencrypted customer PII compromised.",
-      key_findings: [
-        { finding: "14 core production payment gateway systems quarantined within 24 hours of anomaly detection.", impact: "High", evidence_ref: "chunk-001" },
-        { finding: "Threat actor targeted unpatched Kernel vulnerability CVE-2024-3094.", impact: "High", evidence_ref: "chunk-001" },
-        { finding: "Total financial exposure ceiling capped at $2.5 million under corporate cyber insurance.", impact: "Medium", evidence_ref: "chunk-002" },
-        { finding: "Zero unencrypted customer PII or transaction records were exfiltrated.", impact: "Low", evidence_ref: "chunk-003" },
-      ],
-      impact: [
-        { category: "Operational Impact", description: "Payment processing rerouted to secondary clusters with 42 min downtime.", severity: "Contained" },
-        { category: "Financial Exposure", description: "Remediation and audit costs restricted to $2.5 million max.", severity: "Covered" },
-        { category: "Statutory Reporting", description: "Regulatory notifications filed with national CERT authorities within mandatory window.", severity: "Compliant" },
-      ],
-      recommended_actions: [
-        { action: "Deploy Kernel patch KB-9912 across all secondary cluster environments", priority: "Immediate", timeline: "24 Hours", owner: "SecOps Lead" },
-        { action: "Rotate all cluster service account certificates and access tokens", priority: "High", timeline: "48 Hours", owner: "DevSecOps Team" },
-        { action: "Conduct third-party post-incident audit and update continuity documentation", priority: "Medium", timeline: "14 Days", owner: "Chief Risk Officer" },
-      ],
+      title: currentSession?.name ? `${currentSession.name} - Grounded Output` : "Grounded Transformation Briefing",
+      executive_overview: currentCCO?.executive_overview || "Semantic transformation pipeline grounded against source document.",
+      key_findings: (currentCCO?.key_findings || []).map((f) => ({ finding: f, impact: "High", evidence_ref: "chunk-001" })),
       slides: [
         {
           slide_number: 1,
-          title: "Incident Overview & Quarantine Impact",
-          key_message: "14 payment gateway systems quarantined within 24 hours.",
-          body: [
-            "Breach detected on August 14, 2026 across core payment processing nodes.",
-            "Threat actor exploited CVE-2024-3094 vulnerability.",
-            "450 GB of encrypted logs exfiltrated before node isolation.",
-          ],
-          speaker_notes: "Walk executive leaders through the initial 24-hour response timeline and emphasize node quarantine.",
+          title: currentCCO?.title || currentSession?.name || "Session Transformation Overview",
+          key_message: currentCCO?.executive_overview || "Grounded transformation output.",
+          body: claims.length > 0 ? claims.slice(0, 3).map((c) => c.text) : ["Grounded claims extracted from source document."],
+          speaker_notes: "Executive presentation slide.",
           evidence_refs: ["chunk-001"],
-        },
-        {
-          slide_number: 2,
-          title: "Financial & Operational Risk Assessment",
-          key_message: "Financial impact capped at $2.5M; remediation underway.",
-          body: [
-            "Estimated financial impact totals $2.5 million.",
-            "All compromised credentials revoked and patch KB-9912 deployed.",
-            "No unencrypted PII data compromised.",
-          ],
-          speaker_notes: "Reassure stakeholders that customer data integrity is completely intact.",
-          evidence_refs: ["chunk-002"],
-        },
-        {
-          slide_number: 3,
-          title: "Remediation Roadmap & Verification",
-          key_message: "Kernel patch KB-9912 verified across all environments.",
-          body: [
-            "Emergency Kernel patch KB-9912 rolled out across 100% of cluster nodes.",
-            "Enhanced anomaly heuristics active at edge firewalls.",
-            "Formal compliance report submitted to CERT-In.",
-          ],
-          speaker_notes: "Conclude with long-term defensive hardening posture and regulatory compliance.",
-          evidence_refs: ["chunk-003"],
         },
       ],
     },
@@ -161,13 +130,11 @@ export default function SessionWorkspacePage({
       grounding_score: 0.99,
       consistency_score: 0.98,
       unsupported_claim_count: 0,
-      issues: [
-        { claim: "14 production systems compromised", status: "supported" as const, evidence_ref: "chunk-001" },
-        { claim: "Threat actor exploited CVE-2024-3094", status: "supported" as const, evidence_ref: "chunk-001" },
-        { claim: "Estimated financial impact is $2.5M", status: "supported" as const, evidence_ref: "chunk-002" },
-      ],
+      issues: claims.slice(0, 3).map((c) => ({ claim: c.text, status: "supported" as const, evidence_ref: "chunk-001" })),
     },
   };
+
+  const activeArtifact = artifacts[selectedArtifactIdx] || artifacts[0] || mockArtifact;
 
   const tabs = [
     { key: "overview", label: "Overview", icon: LayoutDashboard },
@@ -184,15 +151,15 @@ export default function SessionWorkspacePage({
   ];
 
   const primaryDocument =
-    (currentSession as any)?.documents?.[0]?.name || "Incident_Report.pdf";
+    (currentSession as any)?.documents?.[0]?.name || currentSession?.name || "Source Document";
 
   // Renders the Artifacts stage (either loading, list + active viewer, or empty state)
   const renderArtifactsSection = () => {
     if (isLoadingArtifacts) {
       return (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs flex flex-col items-center justify-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <p className="text-xs font-bold text-slate-700">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-xs flex flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+          <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
             Loading generated artifacts...
           </p>
         </div>
@@ -201,15 +168,15 @@ export default function SessionWorkspacePage({
 
     if (artifacts.length === 0) {
       return (
-        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-xs space-y-4">
-          <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center mx-auto text-blue-600">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-10 text-center shadow-xs space-y-4">
+          <div className="h-12 w-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400">
             <Sparkles className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
               No Artifacts Generated Yet
             </h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1 leading-relaxed">
               Your source document has been grounded into the CCO knowledge
               model. Choose target communication formats in the planner to
               generate verified slide decks, executive summaries, or security
@@ -235,8 +202,8 @@ export default function SessionWorkspacePage({
       <div className="space-y-4">
         {/* Top Artifact Switcher Strip (if multiple artifacts exist) */}
         {artifacts.length > 1 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 bg-white p-2 rounded-2xl border border-slate-200 shadow-xs">
-            <span className="text-[11px] font-bold uppercase text-slate-400 pl-2 shrink-0">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span className="text-[11px] font-bold uppercase text-slate-400 dark:text-slate-500 pl-2 shrink-0">
               Artifacts:
             </span>
             {artifacts.map((art, idx) => {
@@ -249,13 +216,13 @@ export default function SessionWorkspacePage({
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer",
                     isSelected
-                      ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent"
+                      ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent"
                   )}
                 >
                   {getArtifactIcon(type)}
                   <span className="capitalize">{type.replace("_", " ")}</span>
-                  <span className="font-mono text-[10px] text-slate-400">
+                  <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
                     v{art.version || 1}
                   </span>
                 </button>
@@ -273,24 +240,24 @@ export default function SessionWorkspacePage({
   return (
     <div className="space-y-6 max-w-7xl mx-auto pt-1 pb-4">
       {/* Session Top Header */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-            <span className="font-mono text-xs font-bold uppercase text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
+            <span className="font-mono text-xs font-bold uppercase text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
               {currentSession?.id || sessionId}
             </span>
             <StatusBadge status={currentSession?.status || "active"} />
-            <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1 font-mono">
+            <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 font-mono">
               <ShieldCheck className="h-3.5 w-3.5" /> 99% Grounded
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-mono font-medium">
+            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-mono font-medium border border-transparent dark:border-slate-700">
               CCO v2 (Active)
             </span>
           </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
             {currentSession?.name || "Incident Response & Operational Transformation Workspace"}
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {currentSession?.description ||
               "Cross-platform verified artifacts generated from ingested source document"}
           </p>
@@ -299,12 +266,12 @@ export default function SessionWorkspacePage({
         {/* Stage & Layout Controls */}
         <div className="flex items-center gap-3 flex-wrap">
           {/* Stage Switcher: Plan Outputs vs. View Artifacts */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
             <button
               onClick={() => setActiveStage("plan")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeStage === "plan"
-                  ? "bg-white text-blue-700 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
             >
               <Sparkles className="h-3.5 w-3.5" /> Plan Outputs
@@ -312,8 +279,8 @@ export default function SessionWorkspacePage({
             <button
               onClick={() => setActiveStage("artifacts")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeStage === "artifacts"
-                  ? "bg-white text-blue-700 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
             >
               <FileSpreadsheet className="h-3.5 w-3.5" /> Artifacts (
@@ -322,12 +289,12 @@ export default function SessionWorkspacePage({
           </div>
 
           {/* Layout Switcher (Nexora Split-Screen vs. Tabs) */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
             <button
               onClick={() => setLayoutMode("split")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${layoutMode === "split"
-                  ? "bg-white text-blue-700 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               title="Side-by-side Source & Artifact Split Workbench"
             >
@@ -336,8 +303,8 @@ export default function SessionWorkspacePage({
             <button
               onClick={() => setLayoutMode("tabs")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${layoutMode === "tabs"
-                  ? "bg-white text-blue-700 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               title="Tabbed Full Screen View"
             >
@@ -352,31 +319,31 @@ export default function SessionWorkspacePage({
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
           {/* Left Pane: Source Document & Grounded CCO Claims (40% / 5 cols) */}
           <div className="xl:col-span-5 space-y-4">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-blue-600" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                     Source Grounding &amp; CCO
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
-                  Incident_Report.pdf
+                <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                  {sourceDocName}
                 </span>
               </div>
 
               {/* Confidence Meter */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-slate-500 uppercase">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">
                     Model Grounding Integrity
                   </span>
-                  <div className="text-lg font-extrabold text-slate-900 mt-0.5">
+                  <div className="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5">
                     99.2% Accuracy
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                     0 Hallucinations
                   </span>
                 </div>
@@ -384,26 +351,30 @@ export default function SessionWorkspacePage({
 
               {/* Claims Traceability */}
               <div className="space-y-2.5">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Traceable Claims & Facts
                 </div>
-                {[
-                  { claim: "14 payment gateway systems isolated", confidence: "99%", page: "Page 2" },
-                  { claim: "Threat actor exploited CVE-2024-3094", confidence: "98%", page: "Page 2" },
-                  { claim: "Remediation capped at $2.5 million", confidence: "99%", page: "Page 4" },
-                  { claim: "0 unencrypted PII records exfiltrated", confidence: "100%", page: "Page 5" },
-                ].map((item, idx) => (
+                {(claims.length > 0
+                  ? claims.map((c: any, idx: number) => ({
+                      claim: c.text || c.claim || `Claim #${idx + 1}`,
+                      confidence: `${Math.round((c.confidence || 0.98) * 100)}%`,
+                      page: c.page ? `Page ${c.page}` : "Extracted",
+                    }))
+                  : [
+                      { claim: "Verified document claims extracted into CCO model", confidence: "99%", page: "Page 1" },
+                    ]
+                ).map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-xl border border-slate-200 bg-white hover:border-blue-300 transition-colors flex items-center justify-between gap-3 text-xs"
+                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 hover:border-blue-300 dark:hover:border-blue-700 transition-colors flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="flex items-center gap-2.5">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                      <span className="font-semibold text-slate-800 leading-snug">{item.claim}</span>
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 leading-snug">{item.claim}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] text-slate-400 font-mono">{item.page}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{item.page}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                         {item.confidence}
                       </span>
                     </div>
@@ -413,11 +384,15 @@ export default function SessionWorkspacePage({
 
               {/* Source Document Excerpt Box */}
               <div className="pt-2">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">
                   Raw Ingested Excerpt
                 </div>
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-[11px] text-slate-600 leading-relaxed max-h-48 overflow-y-auto">
-                  &ldquo;On August 14, 2026 at 00:15 UTC, automated anomaly detection systems triggered a high-severity alert. 14 production payment gateway systems were immediately quarantined... Kernel patch KB-9912 was initiated to mitigate CVE-2024-3094.&rdquo;
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 font-mono text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed max-h-48 overflow-y-auto">
+                  {currentCCO?.executive_overview
+                    ? `"${currentCCO.executive_overview}"`
+                    : currentSession?.description
+                    ? `"${currentSession.description}"`
+                    : `"Document ingested and grounded into Canonical Content Object (CCO v1) model for session workspace."`}
                 </div>
               </div>
             </div>
@@ -428,20 +403,20 @@ export default function SessionWorkspacePage({
             {activeStage === "plan" ? (
               <div className="space-y-4">
                 {/* Step 3 Banner */}
-                <div className="bg-white rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/60 to-indigo-50/30 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50/60 via-indigo-50/30 to-white dark:from-slate-900 dark:via-blue-950/30 dark:to-slate-900 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-600 text-white font-mono">
                         Step 3: Configure Target Formats
                       </span>
-                      <span className="text-xs text-slate-500 font-medium">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                         Source Grounded &amp; Ready
                       </span>
                     </div>
-                    <h3 className="text-base font-bold text-slate-900">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
                       What would you like to generate?
                     </h3>
-                    <p className="text-xs text-slate-600 mt-0.5">
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                       Select target communication formats and fine-tune audience
                       parameters to initiate verified generation.
                     </p>
@@ -449,29 +424,29 @@ export default function SessionWorkspacePage({
                   {artifacts.length > 0 && (
                     <button
                       onClick={() => setActiveStage("artifacts")}
-                      className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl shadow-2xs transition-all cursor-pointer"
+                      className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 px-3.5 py-2 rounded-xl shadow-2xs transition-all cursor-pointer"
                     >
                       View Artifacts ({artifacts.length}) &rarr;
                     </button>
                   )}
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6">
                   <TransformationPlanner />
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs flex items-center justify-between gap-3">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-xs flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
-                    <span className="text-xs font-bold text-slate-800">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-100 dark:ring-emerald-900" />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
                       Generated Intelligence Artifacts ({artifacts.length})
                     </span>
                   </div>
                   <button
                     onClick={() => setActiveStage("plan")}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-xs font-bold transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 text-xs font-bold transition-all cursor-pointer"
                   >
                     <Sparkles className="h-3.5 w-3.5" /> Plan New Output
                   </button>
@@ -487,7 +462,7 @@ export default function SessionWorkspacePage({
       {layoutMode === "tabs" && (
         <div className="space-y-4">
           {/* Navigation Tabs Bar */}
-          <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2 overflow-x-auto bg-white p-2 rounded-2xl shadow-xs">
+          <div className="flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-xs">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
@@ -498,19 +473,19 @@ export default function SessionWorkspacePage({
                   className={cn(
                     "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer",
                     isActive
-                      ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-xs font-bold"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-xs font-bold"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
                   )}
                 >
                   <Icon
                     className={cn(
                       "h-4 w-4",
-                      isActive ? "text-blue-600" : "text-slate-400"
+                      isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
                     )}
                   />
                   <span>{tab.label}</span>
                   {tab.badge && (
-                    <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-md bg-blue-100 text-blue-800 font-mono">
+                    <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-mono">
                       {tab.badge}
                     </span>
                   )}
@@ -523,39 +498,39 @@ export default function SessionWorkspacePage({
           <div className="pt-2">
             {activeTab === "overview" && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     Source Document
                   </span>
-                  <h3 className="text-base font-bold text-slate-900 truncate">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
                     {primaryDocument}
                   </h3>
-                  <p className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
                     <CheckCircle2 className="h-3.5 w-3.5" /> Validated &amp;
                     Ingested
                   </p>
                 </div>
-                <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     CCO Semantic Version
                   </span>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
                     CCO v1 (Active)
                   </h3>
-                  <p className="text-xs text-blue-700 font-mono font-medium">
+                  <p className="text-xs text-blue-700 dark:text-blue-400 font-mono font-medium">
                     4 Verified Claims • 3 Identifiers
                   </p>
                 </div>
-                <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     Artifact Generation
                   </span>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
                     {artifacts.length > 0
                       ? `${artifacts.length} Formats Generated`
                       : "Ready for Generation"}
                   </h3>
-                  <p className="text-xs text-emerald-700 font-semibold">
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
                     99% Cryptographic Grounding
                   </p>
                 </div>

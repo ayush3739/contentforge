@@ -121,29 +121,29 @@ export default function ArtifactViewer({ artifact }: { artifact: ArtifactItem })
   return (
     <div className="space-y-6">
       {/* Top Controls & Meta Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-            <span className="font-mono text-xs font-bold uppercase text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
+            <span className="font-mono text-xs font-bold uppercase text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
               {artifact.artifact_id || "ART-001"}
             </span>
-            <span className="text-slate-300">•</span>
-            <span className="text-xs font-mono font-semibold text-slate-500">Version {artifact.version || 1}</span>
-            <span className="text-slate-300">•</span>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <span className="text-xs font-mono font-semibold text-slate-500 dark:text-slate-400">Version {artifact.version || 1}</span>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
             <StatusBadge status={statusState} />
             {artifact.checksum && (
               <button
                 onClick={copyChecksum}
-                className="flex items-center gap-1 text-[10px] font-mono text-slate-500 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 px-2 py-0.5 rounded border border-slate-200 transition-colors"
+                className="flex items-center gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/60 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 transition-colors"
                 title="Click to copy SHA-256 Checksum"
               >
-                <Lock className="h-3 w-3 text-emerald-600" />
+                <Lock className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                 <span>SHA-256: {artifact.checksum.slice(0, 16)}...</span>
                 <Copy className="h-2.5 w-2.5" />
               </button>
             )}
           </div>
-          <h2 className="text-base font-bold text-slate-900">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">
             {artifact.content_json?.title || artifact.filename || "Transformation Artifact Experience"}
           </h2>
         </div>
@@ -152,28 +152,28 @@ export default function ArtifactViewer({ artifact }: { artifact: ArtifactItem })
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={handleDownload}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
           >
             <Download className="h-4 w-4" /> Download Binary ({activeFormat === "presentation" ? "PPTX" : "DOCX/PDF"})
           </button>
 
           {isReviewer && statusState !== "approved" && (
-            <div className="flex items-center gap-2 border-l border-slate-200 pl-2.5">
+            <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-2.5">
               <button
                 onClick={handleApprove}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold transition-colors shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-xs font-bold transition-colors shadow-xs cursor-pointer"
               >
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Sign-Off & Anchor
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Sign-Off & Anchor
               </button>
               <button
                 onClick={() => setRevisionModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 text-xs font-bold transition-colors shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 text-xs font-bold transition-colors shadow-xs cursor-pointer"
               >
-                <RotateCcw className="h-4 w-4 text-amber-600" /> Revise
+                <RotateCcw className="h-4 w-4 text-amber-600 dark:text-amber-400" /> Revise
               </button>
               <button
                 onClick={handleReject}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-bold transition-colors shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-xs font-bold transition-colors shadow-xs cursor-pointer"
               >
                 Reject
               </button>
@@ -184,7 +184,7 @@ export default function ArtifactViewer({ artifact }: { artifact: ArtifactItem })
 
       {/* Artifact Output Format Switcher Bar (Only rendered if multiple formats are generated) */}
       {formats.length > 1 ? (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 bg-slate-100/80 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
           {formats.map((f) => {
             const Icon = f.icon;
             const isActive = activeFormat === f.key;
@@ -192,21 +192,21 @@ export default function ArtifactViewer({ artifact }: { artifact: ArtifactItem })
               <button
                 key={f.key}
                 onClick={() => setActiveFormat(f.key)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   isActive
-                    ? "bg-white text-blue-700 shadow-xs border border-slate-200"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    ? "bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-xs border border-slate-200 dark:border-slate-700"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50"
                 }`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+                <Icon className={`h-4 w-4 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`} />
                 <span>{f.label}</span>
               </button>
             );
           })}
         </div>
       ) : formats.length === 1 ? (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50/60 rounded-xl border border-blue-200 w-fit text-xs font-bold text-blue-800">
-          <span className="text-[10px] uppercase tracking-wider text-blue-600 font-mono">Generated Output:</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50/60 dark:bg-blue-950/60 rounded-xl border border-blue-200 dark:border-blue-800 w-fit text-xs font-bold text-blue-800 dark:text-blue-300">
+          <span className="text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-400 font-mono">Generated Output:</span>
           <span>{formats[0].label}</span>
         </div>
       ) : null}

@@ -22,10 +22,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/sign-up");
 
   useEffect(() => {
-    const saved = localStorage.getItem("themeMode") as "light" | "dark" | null;
-    if (saved) {
-      setThemeMode(saved);
-    }
+    const saved = (localStorage.getItem("themeMode") as "light" | "dark" | null) ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    setThemeMode(saved);
   }, [setThemeMode]);
 
   useEffect(() => {

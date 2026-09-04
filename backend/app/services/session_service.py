@@ -146,7 +146,7 @@ class SessionService:
             try:
                 query = self.db.query(Session)
                 if user_id:
-                    query = query.filter((Session.created_by == user_id) | (Session.created_by.is_(None)))
+                    query = query.filter(Session.created_by == user_id)
                 sessions = query.order_by(Session.created_at.desc()).all()
                 return [
                     {
@@ -165,7 +165,7 @@ class SessionService:
         
         items = list(self._in_memory_sessions.values())
         if user_id:
-            return [s for s in items if (s.get("created_by") == user_id or s.get("created_by") is None)]
+            return [s for s in items if s.get("created_by") == user_id]
         return items
 
     def update_session(self, session_id: str, payload: SessionUpdate, user_id: str) -> Optional[dict]:

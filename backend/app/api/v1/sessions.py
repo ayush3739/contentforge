@@ -10,7 +10,7 @@ Section 7 of Specification:
 """
 
 from typing import Optional
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session as DBSession
 from app.auth.clerk import ClerkUserPayload
 from app.auth.dependencies import require_permission, require_user
@@ -39,14 +39,15 @@ async def create_session(
 
 @router.get("", response_model=list[SessionResponse])
 async def list_sessions(
+    all_users: bool = Query(False, description="List all sessions across all users (admin management only)"),
     user: ClerkUserPayload = Depends(require_user()),
     db: Optional[DBSession] = Depends(get_db),
 ):
     """
-    Lists workspace sessions created by current user, or all sessions for admins.
+    Lists workspace sessions created by current user.
     """
     service = SessionService(db=db)
-    user_filter = None if user.role == "admin" else user.user_id
+    user_filter = None if (all_users and user.role == "admin") else user.user_id
     return service.list_sessions(user_id=user_filter)
 
 

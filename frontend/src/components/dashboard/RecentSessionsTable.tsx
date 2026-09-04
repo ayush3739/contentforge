@@ -75,7 +75,7 @@ export default function RecentSessionsTable() {
                   </td>
                   <td className="py-3 px-3 text-slate-700 dark:text-slate-300">
                     <span className="flex items-center gap-1.5">
-                      <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" /> {s.document || s.documents?.[0]?.name || "Incident_Report.pdf"}
+                      <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" /> {s.document || s.documents?.[0]?.name || s.name || "Document"}
                     </span>
                   </td>
                   <td className="py-3 px-3 text-blue-700 dark:text-blue-400 font-mono font-semibold">{s.cco || "v2"}</td>

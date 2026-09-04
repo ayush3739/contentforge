@@ -9,7 +9,7 @@ export default function SourceViewer() {
   const { currentSession, documents } = useSessionStore();
   const [selectedSection, setSelectedSection] = useState("Section 1");
 
-  const doc = documents[0] || currentSession?.documents?.[0];
+  const doc = documents[0] || (currentSession as any)?.documents?.[0];
   const docName = doc?.name || (currentSession?.name ? `${currentSession.name}_Source.pdf` : null);
 
   const documentContent = docName
