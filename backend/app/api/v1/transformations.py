@@ -38,14 +38,13 @@ async def create_transformation(
     service = TransformationService(db=db)
     record = service.create_transformation(payload, user_id=user.user_id)
 
-    # Queue background AI execution pipeline
+    # Queue background AI execution pipeline (job creates its own DB session)
     dispatch_transformation_job(
         transformation_id=record["transformation_id"],
         session_id=payload.session_id,
         cco_version_id=record["cco_version_id"],
         output_types=payload.output_types,
         user_id=user.user_id,
-        db=db,
     )
 
     return TransformationResponse(

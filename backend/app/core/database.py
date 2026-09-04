@@ -69,12 +69,19 @@ def get_db() -> Generator[Optional[Session], None, None]:
         yield db
     except Exception as exc:
         logger.warning(f"Database session error: {exc}")
-        yield None
+        db.rollback()
+        raise
     finally:
         try:
             db.close()
         except Exception:
             pass
+
+
+def new_db_session() -> Session:
+    """Creates a fresh independent DB session for use in background jobs.
+    Caller is responsible for commit/rollback/close."""
+    return SessionLocal()
 
 
 # Async Engine & Session (for FastAPI async request handling)

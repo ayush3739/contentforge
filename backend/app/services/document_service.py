@@ -73,14 +73,13 @@ class DocumentService:
                 self.db.add(db_doc)
                 self.db.commit()
                 
-                # Dispatch AI pipeline ingestion job
+                # Dispatch AI pipeline ingestion job (job creates its own DB session)
                 dispatch_ingestion_job(
                     document_id=doc_id,
                     session_id=session_id,
                     storage_key=storage_key,
                     filename=filename,
                     mime_type=mime_type,
-                    db=self.db
                 )
             except Exception:
                 if self.db:

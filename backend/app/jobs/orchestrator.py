@@ -26,12 +26,14 @@ from app.ai.extraction.semantic import extract_semantic_data
 from app.ai.cco.builder import build_cco
 from app.ai.chunking.chunker import chunk_blocks
 from app.ai.embeddings import embed_batch
+from app.core.database import new_db_session
 logger = logging.getLogger("app.jobs.orchestrator")
 
 
 class TransformationJobOrchestrator:
     def __init__(self, db: Optional[DBSession] = None):
-        self.db = db
+        # NOTE: We intentionally ignore the passed-in request-scoped db here.
+        # Background asyncio tasks MUST manage their own session lifetime.
         self.storage = get_storage_provider()
 
     async def enqueue_and_process(
@@ -47,9 +49,11 @@ class TransformationJobOrchestrator:
         Executes asynchronous transformation workflow without blocking HTTP response.
         """
         logger.info(f"[JOB-ORCHESTRATOR] Starting background job for transformation {transformation_id}")
-        
-        # 1. Update state: PROCESSING
-        self._update_status(transformation_id, "PROCESSING", 15, "Initializing AI execution context.")
+
+        # Background jobs MUST own their DB session — request-scoped sessions are
+        # closed by FastAPI before asyncio.create_task() runs.
+        db = new_db_session()
+        try:
 
         try:
             # 2. Update state: GENERATING (Call P1 AI Intelligence Engine)
@@ -155,7 +159,12 @@ class TransformationJobOrchestrator:
 
         except Exception as e:
             logger.error(f"[JOB-ORCHESTRATOR] Transformation job failed: {e}", exc_info=True)
-            self._update_status(transformation_id, "FAILED", 0, f"Transformation failed: {str(e)}")
+            self._update_status_with_db(db, transformation_id, "FAILED", 0, f"Transformation failed: {str(e)}")
+        finally:
+            try:
+                db.close()
+            except Exception:
+                pass
 
     def _update_status(
         self,
@@ -165,22 +174,54 @@ class TransformationJobOrchestrator:
         message: str,
         artifacts: Optional[list] = None,
     ):
-        if self.db:
+        """Update transformation status using a fresh session (safe for background use)."""
+        db = new_db_session()
+        try:
             db_trans = (
-                self.db.query(TransformationRequest)
+                db.query(TransformationRequest)
+                .filter(TransformationRequest.id == transformation_id)
+                .first()
+            )
+            if db_trans:
+                db_trans.status = status
+                db.commit()
+        except Exception as e:
+            logger.warning(f"[JOB-ORCHESTRATOR] Status update failed: {e}")
+            db.rollback()
+        finally:
+            db.close()
+
+    def _update_status_with_db(
+        self,
+        db: DBSession,
+        transformation_id: str,
+        status: str,
+        progress: int,
+        message: str,
+        artifacts: Optional[list] = None,
+    ):
+        """Update transformation status using the provided DB session."""
+        if db:
+            db_trans = (
+                db.query(TransformationRequest)
                 .filter(TransformationRequest.id == transformation_id)
                 .first()
             )
             if db_trans:
                 db_trans.status = status
                 try:
-                    self.db.commit()
+                    db.commit()
                 except Exception:
-                    self.db.rollback()
+                    db.rollback()
 
 
 class IngestionJobOrchestrator:
     def __init__(self, db: Optional[DBSession] = None):
+        # NOTE: We intentionally ignore the passed-in request-scoped db.
+        # The streaming path (upload_document_stream) runs synchronously within the SSE
+        # generator and may safely use the request db. The background dispatch path
+        # must create its own session — done inside enqueue_and_process.
+        self._request_db = db  # kept only for the streaming SSE path
         self.db = db
         self.storage = get_storage_provider()
 
@@ -193,7 +234,9 @@ class IngestionJobOrchestrator:
         mime_type: str,
     ):
         logger.info(f"[JOB-ORCHESTRATOR] Starting ingestion job for document {document_id}")
-        
+
+        # Create own DB session — request session is closed before this task runs
+        db = new_db_session()
         try:
             # 1. Fetch raw binary from storage
             content_bytes = await self.storage.get_object(storage_key)
@@ -234,17 +277,17 @@ class IngestionJobOrchestrator:
             logger.info(f"[INGESTION-WORKER] Generated {len(chunks)} chunks & embeddings")
 
             # 7. Persist to DB
-            if self.db:
-                # Add CCO Version
+            if db:
+                # Add CCO Version — use correct column names
                 cco_id = f"CCO-{uuid.uuid4().hex[:8].upper()}"
                 db_cco = CCOVersion(
                     id=cco_id,
                     document_id=document_id,
-                    version=1,
+                    version_number=1,
                     cco_json=cco_dict,
-                    hash=cco_dict["hash"]
+                    status="active",
                 )
-                self.db.add(db_cco)
+                db.add(db_cco)
 
                 # Add Source Blocks
                 for idx, b in enumerate(blocks):
@@ -258,7 +301,7 @@ class IngestionJobOrchestrator:
                         position_index=b["position"],
                         metadata_json=b["metadata"]
                     )
-                    self.db.add(db_block)
+                    db.add(db_block)
 
                 # Add Embedded Chunks
                 for c, emb in zip(chunks, embeddings):
@@ -271,23 +314,28 @@ class IngestionJobOrchestrator:
                         token_count=c["metadata"].get("estimated_tokens", 0),
                         embedding=emb
                     )
-                    self.db.add(db_chunk)
+                    db.add(db_chunk)
 
                 # Update Document Status
-                db_doc = self.db.query(Document).filter(Document.id == document_id).first()
+                db_doc = db.query(Document).filter(Document.id == document_id).first()
                 if db_doc:
                     db_doc.status = "ready"
 
-                self.db.commit()
+                db.commit()
                 logger.info(f"[INGESTION-WORKER] Successfully committed document {document_id} and CCO {cco_id} to PostgreSQL database.")
         except Exception as e:
             logger.error(f"[INGESTION-WORKER] Ingestion failed for {document_id}: {str(e)}")
-            if self.db:
-                self.db.rollback()
-                db_doc = self.db.query(Document).filter(Document.id == document_id).first()
+            if db:
+                db.rollback()
+                db_doc = db.query(Document).filter(Document.id == document_id).first()
                 if db_doc:
                     db_doc.status = "failed"
-                self.db.commit()
+                db.commit()
+        finally:
+            try:
+                db.close()
+            except Exception:
+                pass
 
     async def stream_process(
         self,
@@ -342,14 +390,14 @@ class IngestionJobOrchestrator:
 
             yield {"event": "progress", "data": {"stage": "persisting", "message": "Persisting to database"}}
             if self.db:
-                # Add CCO Version
+                # Add CCO Version — use correct column names
                 cco_id = f"CCO-{uuid.uuid4().hex[:8].upper()}"
                 db_cco = CCOVersion(
                     id=cco_id,
                     document_id=document_id,
-                    version=1,
+                    version_number=1,
                     cco_json=cco_dict,
-                    hash=cco_dict["hash"]
+                    status="active",
                 )
                 self.db.add(db_cco)
 
