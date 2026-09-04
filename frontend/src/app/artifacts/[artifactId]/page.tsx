@@ -1,19 +1,21 @@
 "use client";
 
+import React, { use } from "react";
 import ArtifactViewer from "@/components/artifacts/ArtifactViewer";
 import VerificationPanel from "@/components/verification/VerificationPanel";
 import { ArtifactItem } from "@/types/artifact";
 
-export default function ArtifactWorkspacePage({ params }: { params: { artifactId: string } }) {
+export default function ArtifactWorkspacePage({ params }: { params: Promise<{ artifactId: string }> }) {
+  const { artifactId } = use(params);
   const artifact: ArtifactItem = {
-    artifact_id: params.artifactId,
+    artifact_id: artifactId,
     transformation_request_id: "TR-88412",
     cco_version_id: "CCO-v2-88412",
     type: "presentation",
     version: 1,
     status: "verified",
-    filename: `presentation_${params.artifactId}.pptx`,
-    download_url: `/api/v1/artifacts/${params.artifactId}/download`,
+    filename: `presentation_${artifactId}.pptx`,
+    download_url: `/api/v1/artifacts/${artifactId}/download`,
     checksum: "sha256:8a91f42e391b002c91847120a11c8d",
     content_json: {
       title: "Executive Incident Briefing: Ransomware Attack",
@@ -60,8 +62,8 @@ export default function ArtifactWorkspacePage({ params }: { params: { artifactId
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <span className="font-mono text-xs text-cyan-400 font-bold uppercase">{params.artifactId}</span>
-        <h1 className="text-xl font-bold text-slate-100 mt-0.5">Artifact Workspace & Grounding Verification</h1>
+        <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200 font-bold uppercase">{artifactId}</span>
+        <h1 className="text-xl font-bold text-slate-900 mt-1">Artifact Workspace & Grounding Verification</h1>
       </div>
 
       <ArtifactViewer artifact={artifact} />

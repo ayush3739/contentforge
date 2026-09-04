@@ -48,17 +48,21 @@ async def plan_transformation_async(
     cco = cco or {}
     
     # Core fallback constraints
-    base_constraints = []
+    base_constraints = [
+        "Synthesize comprehensive, publication-grade professional intelligence with concrete factual details.",
+        "Ensure every major claim, timeline milestone, and technical finding from the CCO is thoroughly articulated.",
+        "Avoid superficial or robotic one-liners; deliver substantive executive narratives with actionable depth.",
+    ]
     if detail_level == "concise":
-        base_constraints.append("Keep explanations terse and high-level; prioritize brevity.")
+        base_constraints.append("Structure for executive readability with clear hierarchy, high signal-to-noise ratio, and impactful substance.")
     elif detail_level == "detailed":
         base_constraints.append("Provide comprehensive context, technical nuances, and multi-paragraph supporting arguments.")
     
     if artifact_type == "presentation":
         base_constraints.extend([
             "Every slide must cite at least one evidence_ref (chunk ID or claim ID).",
-            "Keep slide bullet points punchy and scannable.",
-            "Include actionable speaker notes for every slide."
+            "Keep slide bullet points substantive, impactful, and scannable.",
+            "Include actionable, detailed speaker notes for every slide."
         ])
     
     cco_summary = {

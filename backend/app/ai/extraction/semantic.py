@@ -61,11 +61,9 @@ async def extract_semantic_data(text_content: str, provider_name: Optional[str] 
         )
         return SemanticExtractionResult.model_validate(data)
     except Exception as e:
-        logger.warning(f"Semantic extraction failed with {provider.__class__.__name__}: {e}. Attempting cascade fallback...")
         try:
             from app.ai.gateway import GroqProvider
-            from app.core.config import settings
-            if not isinstance(provider, GroqProvider) and settings.GROQ_API_KEY:
+            if not isinstance(provider, GroqProvider) and getattr(settings, "GROQ_API_KEY", None):
                 alt_provider = GroqProvider()
                 data = await alt_provider.generate(
                     messages=messages,

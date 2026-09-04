@@ -21,36 +21,8 @@ interface SessionStoreState {
 }
 
 export const useSessionStore = create<SessionStoreState>((set) => ({
-  currentSession: {
-    id: "SES-INCIDENT-88412",
-    name: "Q3 Ransomware Incident Response Workspace",
-    description: "Multi-system payment processing breach assessment workspace",
-    created_by: "analyst01",
-    status: "active",
-    document_count: 1,
-    transformation_count: 2,
-    created_at: new Date().toISOString(),
-  },
-  sessionsList: [
-    {
-      id: "SES-INCIDENT-88412",
-      name: "Q3 Ransomware Incident Response Workspace",
-      created_by: "analyst01",
-      status: "active",
-      document_count: 1,
-      transformation_count: 2,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: "SES-THREAT-002",
-      name: "APT-29 Supply Chain Threat Assessment",
-      created_by: "analyst01",
-      status: "completed",
-      document_count: 3,
-      transformation_count: 4,
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ],
+  currentSession: null,
+  sessionsList: [],
   documents: [
     {
       id: "DOC-88412",

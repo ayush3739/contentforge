@@ -18,35 +18,37 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* 3D Glassmorphic Welcome Banner */}
-      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-8 rounded-3xl border border-slate-800/90 bg-gradient-to-r from-slate-900/90 via-blue-950/40 to-slate-900/90 backdrop-blur-2xl shadow-[0_15px_35px_rgba(0,0,0,0.4)] overflow-hidden group">
-        <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/20 transition-all duration-700" />
+      {/* Executive Light Welcome Banner */}
+      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-8 rounded-3xl border border-slate-200 bg-gradient-to-r from-white via-blue-50/40 to-slate-50 shadow-xs overflow-hidden">
+        <div className="absolute right-0 top-0 w-96 h-full opacity-5 pointer-events-none flex items-center justify-end pr-6">
+          <img src="/logo.png" alt="Emblem" className="h-64 w-64 object-contain" />
+        </div>
 
-        <div className="relative z-10 space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-bold uppercase tracking-wider border border-cyan-500/25 flex items-center gap-1 shadow-sm">
-              <Sparkles className="h-3 w-3 text-cyan-400" /> ContentForge AI Operator Portal
+        <div className="relative z-10 space-y-2.5">
+          <div className="flex items-center gap-2.5">
+            <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold uppercase tracking-wider border border-blue-200 flex items-center gap-1.5 shadow-2xs">
+              <Sparkles className="h-3.5 w-3.5 text-blue-600" /> ContentForge AI Operator Portal
             </span>
-            <span className="text-xs text-slate-400 font-mono">SIH 2026 — SIH26154</span>
+            <span className="text-xs text-slate-500 font-mono">SIH 2026 — SIH26154</span>
           </div>
 
-          <h1 className="text-2xl font-extrabold text-slate-100 tracking-tight">
-            Welcome back, <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">{displayName}</span>!
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Welcome back, <span className="text-blue-600">{displayName}</span>
           </h1>
-          <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-            Persistent source transformation workspace, evidence-backed verification pipeline, and non-repudiable ledger provenance.
+          <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+            Persistent single-source document transformation workspace, evidence-grounded verifier pipeline, and non-repudiable blockchain provenance ledger.
           </p>
         </div>
 
         <Link
           href="/sessions/new"
-          className="relative z-10 flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 text-white font-extrabold text-xs shadow-[0_10px_25px_rgba(37,99,235,0.35)] hover:shadow-[0_15px_30px_rgba(6,182,212,0.45)] transform hover:-translate-y-0.5 transition-all shrink-0"
+          className="relative z-10 flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-xs hover:shadow-sm transition-all shrink-0"
         >
           <PlusCircle className="h-4 w-4" /> Create Transformation Session
         </Link>
       </div>
 
-      {/* 3D Metric Cards Row */}
+      {/* Metric Cards Row */}
       <MetricCards />
 
       {/* Main Grid Section */}

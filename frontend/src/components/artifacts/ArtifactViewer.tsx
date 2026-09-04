@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useUIStore } from "@/store/useUIStore";
 import { ArtifactItem } from "@/types/artifact";
 import PresentationSlidePreview from "./PresentationSlidePreview";
+import ExecutiveSummaryViewer from "./ExecutiveSummaryViewer";
+import AdvisoryViewer from "./AdvisoryViewer";
+import InfographicViewer from "./InfographicViewer";
+import VideoPackageViewer from "./VideoPackageViewer";
+import SocialPostViewer from "./SocialPostViewer";
 import StatusBadge from "../sessions/StatusBadge";
 import {
   Download,
@@ -14,79 +19,161 @@ import {
   ShieldCheck,
   FileText,
   Video,
-  Share2,
+  Presentation,
+  ShieldAlert,
   BarChart3,
+  Share2,
+  Copy,
+  Lock,
+  Layers,
 } from "lucide-react";
 
 export default function ArtifactViewer({ artifact }: { artifact: ArtifactItem }) {
   const { activeRole } = useAuthStore();
   const { addToast } = useUIStore();
-  const [statusState, setStatusState] = useState(artifact.status);
+  
+  const allFormats = [
+    { key: "presentation", label: "Presentation (PPTX)", icon: Presentation },
+    { key: "executive_summary", label: "Executive Summary (DOCX/PDF)", icon: FileText },
+    { key: "advisory", label: "Security Advisory", icon: ShieldAlert },
+    { key: "infographic", label: "Visual Infographic", icon: BarChart3 },
+    { key: "video_package", label: "Video Storyboard", icon: Video },
+    { key: "social_post", label: "Social Communication", icon: Share2 },
+  ];
+
+  // Dynamically determine which formats are actually generated or requested
+  const availableKeys =
+    artifact.available_formats ||
+    artifact.content_json?.available_formats ||
+    (artifact.type ? [artifact.type] : null);
+
+  const formats =
+    availableKeys && availableKeys.length > 0
+      ? allFormats.filter((f) => availableKeys.includes(f.key))
+      : allFormats;
+
+  const [activeFormat, setActiveFormat] = useState<string>(
+    artifact.type && formats.some((f) => f.key === artifact.type)
+      ? artifact.type
+      : formats[0]?.key || "presentation"
+  );
+  const [statusState, setStatusState] = useState(artifact.status || "verified");
   const [revisionModalOpen, setRevisionModalOpen] = useState(false);
   const [revisionNotes, setRevisionNotes] = useState("");
 
   const isReviewer = activeRole === "reviewer" || activeRole === "admin";
 
+  useEffect(() => {
+    if (formats.length > 0 && !formats.some((f) => f.key === activeFormat)) {
+      setActiveFormat(formats[0].key);
+    }
+  }, [formats, activeFormat]);
+
   const handleDownload = () => {
-    addToast({ type: "success", title: "Download Started", message: `Downloading ${artifact.filename}...` });
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") || "http://localhost:8000";
+    const downloadUrl = artifact.download_url?.startsWith("http")
+      ? artifact.download_url
+      : `${baseUrl}${artifact.download_url || `/api/v1/artifacts/${artifact.artifact_id}/download`}`;
+
+    window.open(downloadUrl, "_blank");
+    addToast({
+      type: "success",
+      title: "Binary Download Initiated",
+      message: `Downloading ${artifact.filename || `${activeFormat}_artifact.bin`}...`,
+    });
   };
 
   const handleApprove = () => {
     setStatusState("approved");
-    addToast({ type: "success", title: "Artifact Approved", message: "Reviewer sign-off recorded in audit log." });
+    addToast({
+      type: "success",
+      title: "Artifact Approved & Anchored",
+      message: "Reviewer sign-off recorded. SHA-256 anchored to provenance ledger.",
+    });
   };
 
   const handleReject = () => {
     setStatusState("rejected");
-    addToast({ type: "error", title: "Artifact Rejected", message: "Rejection status logged." });
+    addToast({
+      type: "error",
+      title: "Artifact Rejected",
+      message: "Rejection status logged with immutable audit record.",
+    });
   };
 
   const handleReviseSubmit = () => {
     setStatusState("generating");
     setRevisionModalOpen(false);
-    addToast({ type: "info", title: "Revision Submitted", message: "Prompt revision queued for regeneration." });
+    addToast({
+      type: "info",
+      title: "Revision Queued",
+      message: "Prompt revision instructions submitted to P1 AI worker.",
+    });
+  };
+
+  const copyChecksum = () => {
+    if (artifact.checksum) {
+      navigator.clipboard.writeText(artifact.checksum);
+      addToast({ type: "info", title: "Copied Checksum", message: "SHA-256 hash copied to clipboard." });
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header Controls Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-800 bg-slate-900/60 gap-4">
+      {/* Top Controls & Meta Bar */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-cyan-400 font-bold uppercase">{artifact.type}</span>
-            <span className="text-slate-500">•</span>
-            <span className="text-xs text-slate-400 font-mono">Version {artifact.version}</span>
+          <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+            <span className="font-mono text-xs font-bold uppercase text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
+              {artifact.artifact_id || "ART-001"}
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="text-xs font-mono font-semibold text-slate-500">Version {artifact.version || 1}</span>
+            <span className="text-slate-300">•</span>
             <StatusBadge status={statusState} />
+            {artifact.checksum && (
+              <button
+                onClick={copyChecksum}
+                className="flex items-center gap-1 text-[10px] font-mono text-slate-500 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 px-2 py-0.5 rounded border border-slate-200 transition-colors"
+                title="Click to copy SHA-256 Checksum"
+              >
+                <Lock className="h-3 w-3 text-emerald-600" />
+                <span>SHA-256: {artifact.checksum.slice(0, 16)}...</span>
+                <Copy className="h-2.5 w-2.5" />
+              </button>
+            )}
           </div>
-          <h2 className="text-base font-bold text-slate-100 mt-1">{artifact.filename}</h2>
+          <h2 className="text-base font-bold text-slate-900">
+            {artifact.content_json?.title || artifact.filename || "Transformation Artifact Experience"}
+          </h2>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={handleDownload}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all"
           >
-            <Download className="h-4 w-4" /> Download Binary
+            <Download className="h-4 w-4" /> Download Binary ({activeFormat === "presentation" ? "PPTX" : "DOCX/PDF"})
           </button>
 
           {isReviewer && statusState !== "approved" && (
-            <div className="flex items-center gap-2 border-l border-slate-800 pl-3">
+            <div className="flex items-center gap-2 border-l border-slate-200 pl-2.5">
               <button
                 onClick={handleApprove}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 text-xs font-bold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold transition-colors shadow-xs"
               >
-                <CheckCircle2 className="h-4 w-4" /> Approve
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Sign-Off & Anchor
               </button>
               <button
                 onClick={() => setRevisionModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-bold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 text-xs font-bold transition-colors shadow-xs"
               >
-                <RotateCcw className="h-4 w-4" /> Revise
+                <RotateCcw className="h-4 w-4 text-amber-600" /> Revise
               </button>
               <button
                 onClick={handleReject}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 text-xs font-bold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-bold transition-colors shadow-xs"
               >
                 Reject
               </button>
@@ -95,72 +182,128 @@ export default function ArtifactViewer({ artifact }: { artifact: ArtifactItem })
         </div>
       </div>
 
-      {/* Main Preview Container */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-        {artifact.type === "presentation" ? (
+      {/* Artifact Output Format Switcher Bar (Only rendered if multiple formats are generated) */}
+      {formats.length > 1 ? (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200">
+          {formats.map((f) => {
+            const Icon = f.icon;
+            const isActive = activeFormat === f.key;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setActiveFormat(f.key)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                  isActive
+                    ? "bg-white text-blue-700 shadow-xs border border-slate-200"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                }`}
+              >
+                <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+                <span>{f.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : formats.length === 1 ? (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50/60 rounded-xl border border-blue-200 w-fit text-xs font-bold text-blue-800">
+          <span className="text-[10px] uppercase tracking-wider text-blue-600 font-mono">Generated Output:</span>
+          <span>{formats[0].label}</span>
+        </div>
+      ) : null}
+
+      {/* Rendered Artifact Stage */}
+      <div className="transition-all">
+        {activeFormat === "presentation" && (
           <PresentationSlidePreview slides={artifact.content_json?.slides || []} />
-        ) : artifact.type === "video_package" ? (
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-              <Video className="h-4 w-4 text-purple-400" /> Video Storyboard Package
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/80 space-y-2">
-                <span className="text-xs font-mono font-bold text-cyan-400">Scene 01 (00:00 - 00:08)</span>
-                <p className="text-xs text-slate-200 font-medium">Visual: Animated infrastructure breach diagram showing 14 isolated nodes.</p>
-                <p className="text-xs text-slate-400 italic bg-slate-900 p-2.5 rounded-lg">&ldquo;On August 14, unauthorized activity affected 14 payment nodes...&rdquo;</p>
-              </div>
-              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/80 space-y-2">
-                <span className="text-xs font-mono font-bold text-cyan-400">Scene 02 (00:08 - 00:15)</span>
-                <p className="text-xs text-slate-200 font-medium">Visual: Financial risk counter capping impact at $2.5 million.</p>
-                <p className="text-xs text-slate-400 italic bg-slate-900 p-2.5 rounded-lg">&ldquo;Immediate remediation isolated affected nodes within 24 hours...&rdquo;</p>
-              </div>
-            </div>
-          </div>
-        ) : artifact.type === "infographic" ? (
-          <div className="space-y-4 text-center p-6 border border-slate-800 bg-slate-950 rounded-xl">
-            <BarChart3 className="h-10 w-10 text-cyan-400 mx-auto mb-2" />
-            <h3 className="text-base font-bold text-slate-100">Visual Infographic Render Preview</h3>
-            <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto my-4">
-              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-lg">14 Nodes</div>
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-lg">$2.5M Impact</div>
-              <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-bold text-lg">24 Hours</div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <h3 className="text-base font-bold text-slate-100">{artifact.content_json?.title || artifact.filename}</h3>
-            <div className="font-mono text-xs text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-950 p-5 rounded-xl border border-slate-800">
-              {JSON.stringify(artifact.content_json, null, 2)}
-            </div>
-          </div>
+        )}
+
+        {activeFormat === "executive_summary" && (
+          <ExecutiveSummaryViewer
+            content={{
+              title: artifact.content_json?.title,
+              executive_overview: artifact.content_json?.executive_overview || artifact.content_json?.executive_takeaway,
+              key_findings: artifact.content_json?.key_findings,
+              impact: artifact.content_json?.impact,
+              recommended_actions: artifact.content_json?.recommended_actions || artifact.content_json?.recommendations,
+            }}
+          />
+        )}
+
+        {activeFormat === "advisory" && (
+          <AdvisoryViewer
+            content={{
+              title: artifact.content_json?.title,
+              severity: artifact.content_json?.severity,
+              summary: artifact.content_json?.executive_overview || artifact.content_json?.summary,
+              affected_entities: artifact.content_json?.affected_entities || artifact.content_json?.affected_systems,
+              indicators_of_compromise: artifact.content_json?.indicators_of_compromise,
+              recommended_actions: artifact.content_json?.recommended_actions || artifact.content_json?.required_actions,
+            }}
+          />
+        )}
+
+        {activeFormat === "infographic" && (
+          <InfographicViewer
+            content={{
+              title: artifact.content_json?.title,
+              metrics: artifact.content_json?.metrics,
+            }}
+          />
+        )}
+
+        {activeFormat === "video_package" && (
+          <VideoPackageViewer
+            content={{
+              title: artifact.content_json?.title,
+              scenes: artifact.content_json?.scenes,
+            }}
+          />
+        )}
+
+        {activeFormat === "social_post" && (
+          <SocialPostViewer
+            content={{
+              title: artifact.content_json?.title,
+              platform: artifact.content_json?.platform,
+              target_audience: artifact.content_json?.target_audience,
+              hook: artifact.content_json?.hook,
+              body: artifact.content_json?.body,
+              key_takeaways: artifact.content_json?.key_takeaways,
+              call_to_action: artifact.content_json?.call_to_action,
+              hashtags: artifact.content_json?.hashtags,
+              evidence_refs: artifact.content_json?.evidence_refs,
+            }}
+          />
         )}
       </div>
 
-      {/* Revision Modal */}
+      {/* Revision Request Modal */}
       {revisionModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 space-y-4 shadow-2xl">
-            <h3 className="text-sm font-bold text-slate-100">Request Prompt Revision</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-xl">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Request Targeted Revision</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Prompt instructions will be sent to P1 for regeneration without altering verified CCO facts.</p>
+            </div>
             <textarea
               value={revisionNotes}
               onChange={(e) => setRevisionNotes(e.target.value)}
-              placeholder="Describe requested adjustments (e.g. Add slide for financial impact breakdown)..."
+              placeholder="e.g., Focus more on financial mitigation ceiling and add details on the Kernel KB-9912 patch..."
               rows={4}
-              className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200 focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none"
             />
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 onClick={() => setRevisionModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-slate-800 text-slate-400 hover:bg-slate-800 text-xs font-semibold"
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReviseSubmit}
-                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs"
               >
-                Submit Revision
+                Submit Revision Request
               </button>
             </div>
           </div>

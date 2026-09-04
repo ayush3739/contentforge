@@ -142,7 +142,14 @@ async def run_transformation_pipeline_stream(
             try:
                 existing_session = await db.get(WorkspaceSession, session_id)
                 if not existing_session:
-                    new_session = WorkspaceSession(id=session_id, name=f"Session for {request.filename}")
+                    clean_name = (
+                        request.filename.rsplit(".", 1)[0]
+                        .replace("_", " ")
+                        .replace("-", " ")
+                        .title()
+                    )
+                    session_display_name = f"{clean_name} Workspace"
+                    new_session = WorkspaceSession(id=session_id, name=session_display_name)
                     db.add(new_session)
 
                 doc_record = Document(

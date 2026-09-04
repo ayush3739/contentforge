@@ -23,10 +23,12 @@ def setup_logging(log_level: str = "INFO"):
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
 
-    # Console Handler (Stdout)
-    if not root_logger.handlers:
+    # Ensure console handler to sys.stdout exists and is active
+    has_console = any(isinstance(h, logging.StreamHandler) and h.stream in (sys.stdout, sys.stderr) for h in root_logger.handlers)
+    if not has_console:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(logging.Formatter(log_format, datefmt=date_format))
+        console_handler.setLevel(logging.INFO)
         root_logger.addHandler(console_handler)
     else:
         for handler in root_logger.handlers:
@@ -42,14 +44,24 @@ def setup_logging(log_level: str = "INFO"):
     file_handler.setLevel(logging.INFO)
     root_logger.addHandler(file_handler)
 
-    # Application loggers
-    logging.getLogger("app").setLevel(logging.INFO)
-    logging.getLogger("app.ai").setLevel(logging.INFO) # Detailed AI tracking
-    logging.getLogger("app.main").setLevel(logging.INFO)
-    logging.getLogger("uvicorn").setLevel(logging.INFO)
-    logging.getLogger("uvicorn.access").setLevel(logging.INFO)
-    logging.getLogger("uvicorn.error").setLevel(logging.INFO)
-    logging.getLogger("alembic").setLevel(logging.INFO)
+    # Application loggers - ensure propagation and INFO level
+    for app_name in [
+        "app",
+        "app.main",
+        "app.ai",
+        "app.ai.ingestion",
+        "app.jobs",
+        "app.jobs.orchestrator",
+        "app.services",
+        "app.api",
+        "uvicorn",
+        "uvicorn.access",
+        "uvicorn.error",
+        "alembic",
+    ]:
+        l = logging.getLogger(app_name)
+        l.setLevel(logging.INFO)
+        l.propagate = True
 
     # Quiet down external dependency noise
     for noisy in [

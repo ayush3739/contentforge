@@ -18,6 +18,12 @@
 | `FEAT-AI-003`| Server-Sent Events (SSE) Live Transformation Stream | P1 (AI) | `main` | ✅ Completed | 2026-09-03 |
 | `FEAT-AI-004`| Agentic RAG Pipeline & CCO Memory Optimization | P1 (AI) | `main` | ✅ Completed | 2026-09-03 |
 | `FEAT-AI-005`| AI Ingestion Background Worker & Phase 5 Schemas (SSE) | P1 / P3 | `feature/ai-api-integration` | ✅ Completed | 2026-09-03 |
+| `FEAT-FE-002`| Next.js 16 Route Stability, PDF Fallback Parser & Binary Download | P2 / P4 | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-FE-003`| Authoritative Public Sector Light Theme Redesign & Official Brand Logo Integration | P2 (Frontend) | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-AI-006`| Semantic Extraction Scoping Fix, Substantive Document Depth, Dynamic Artifact Tabs & Social Post Viewer | P1 / P2 | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-SYS-001`| Session DB Persistence, Ingestion Terminal Logging, Post-Ingestion Output Flow & UI Clearance Fix | Fullstack | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-AUTH-002`| Institutional Auth Portal Redesign, Email-Based Role Derivation & Standalone Auth Shell | P2 / P3 | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-SEC-001` | Critical Security & Stability Fixes (DB Session Lifetime, CCO Columns, Auth Bypass, Role Derivation) | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
 | `FEAT-RN-001`| *Example: Executive Summary HTML Renderer*| P4 (Renderers)| `feature/renderer-exec`| 📋 Planned | - |
 
@@ -223,6 +229,109 @@
 
 ---
 
+### [FEAT-FE-002] Next.js 16 Route Stability, PDF Fallback Parser & Binary Download
+- **Role / Owner:** P2 (Frontend) & P4 (Renderers)
+- **Date Added:** 2026-09-04
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  Resolved several critical blocking issues in frontend-to-backend workflows:
+  1. Updated Next.js 16 dynamic route pages (`/artifacts/[artifactId]`, `/sessions/[sessionId]`, `/transformations/[transformationId]`) to correctly unwrap `params` using `React.use()` in compliance with React 19/Next 16.
+  2. Fixed backend document ingestion parser (`backend/app/ai/ingestion/parser.py`) so that invalid/mock PDF headers or test files gracefully fall back to plain-text layout parsing without crashing the background worker.
+  3. Connected the "Download Binary" button in `ArtifactViewer.tsx` to automatically trigger binary downloads of compiled presentation (`.pptx`) or executive summary files from `/api/v1/artifacts/{id}/download`.
+  4. Created `frontend/src/lib/utils.ts` and enhanced `frontend/src/proxy.ts` with graceful dev error recovery.
+- **Touched / Created Files:**
+  - `frontend/src/lib/utils.ts`
+  - `frontend/src/proxy.ts`
+  - `frontend/src/next.config.ts`
+  - `frontend/src/app/artifacts/[artifactId]/page.tsx`
+  - `frontend/src/app/sessions/[sessionId]/page.tsx`
+  - `frontend/src/app/transformations/[transformationId]/page.tsx`
+  - `frontend/src/components/artifacts/ArtifactViewer.tsx`
+  - `backend/app/ai/ingestion/parser.py`
+- **How to View & Verify:**
+  - Run `npx tsc --noEmit` in `frontend/` (0 errors).
+  - Open `http://localhost:3000/sessions/SES-27067325` in browser.
+  - Click the "Artifacts Workspace" tab to view interactive slides.
+  - Click "Download Binary" to trigger PPTX download.
+
+---
+
+### [FEAT-FE-003] Authoritative Public Sector Light Theme Redesign & Official Brand Logo Integration
+- **Role / Owner:** P2 (Frontend Engineer)
+- **Date Added:** 2026-09-04
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  Overhauled the entire frontend user interface to an authoritative, enterprise-grade, public-sector light theme inspired by Sentra AI, Nexora Solutions, Notion AI, and Palantir Workshop. Integrated official logos and eliminated all residual dark-mode styles across 100% of pages and components:
+  1. **Official Brand Logo Integration:** Switched sidebar to the standalone emblem mark (`logo.png`) paired with crisp HTML typography (`ContentForge AI`), generated vector `logo.svg`, and replaced the default Vercel favicon across `favicon.ico`, `icon.png`, and `layout.tsx` metadata.
+  2. **Sidebar & Layout Overhaul:** Converted the sidebar from dark navy (`#090d16`) to crisp white (`bg-white border-r border-slate-200 shadow-xs`), with royal blue active indicators and light role badge.
+  3. **Dashboard & Metric Cards:** Replaced dark gradients with an executive welcome hero banner with an emblem watermark, 4 pristine white metric cards with pastel icon containers, recent sessions table, and review queue list.
+  4. **Multi-Artifact Viewer Suite:** Built out dedicated, responsive light-mode viewports for all target formats:
+     - **Presentation (PPTX):** 16:9 slide canvas with thumbnail navigator, speaker notes drawer, and full-screen view.
+     - **Executive Summary (DOCX/PDF):** Formal government letterhead briefing with key KPI cards, incident impact breakdown, and action items.
+     - **Security Advisory:** STIX 2.1 compatible IoC table with 1-click clipboard copy, threat summary, and mitigation checklist.
+     - **Visual Infographic:** 4 high-impact metric blocks and 24-hour incident progression timeline.
+     - **Video Package:** Production storyboard cards with camera/motion cues and spoken voiceover scripts.
+  5. **Admin, Review & Session Pages:** Transformed `/sessions`, `/sessions/new`, `/transformations/[id]`, `/review`, `/admin/users`, `/admin/audit-logs`, and `/admin/security-events` into clean white card interfaces.
+  6. **Zero Dark Mode Left:** 0 occurrences of `bg-slate-900`, `bg-slate-950`, `bg-slate-800`, or `border-slate-800` across the codebase.
+- **Key Modules / Files Modified:**
+  - `frontend/src/components/layout/Sidebar.tsx`
+  - `frontend/src/components/layout/Topbar.tsx`
+  - `frontend/src/components/layout/AppShell.tsx`
+  - `frontend/src/components/layout/RoleGuard.tsx`
+  - `frontend/src/app/globals.css`, `frontend/src/app/layout.tsx`
+  - `frontend/src/app/dashboard/page.tsx`
+  - `frontend/src/components/dashboard/MetricCards.tsx`
+  - `frontend/src/components/dashboard/RecentSessionsTable.tsx`
+  - `frontend/src/components/dashboard/RecentReviewList.tsx`
+  - `frontend/src/app/sessions/page.tsx`, `frontend/src/app/sessions/new/page.tsx`
+  - `frontend/src/app/sessions/[sessionId]/page.tsx`
+  - `frontend/src/components/artifacts/ArtifactViewer.tsx`
+  - `frontend/src/components/artifacts/ExecutiveSummaryViewer.tsx`
+  - `frontend/src/components/artifacts/AdvisoryViewer.tsx`
+  - `frontend/src/components/artifacts/InfographicViewer.tsx`
+  - `frontend/src/components/artifacts/VideoPackageViewer.tsx`
+  - `frontend/src/components/artifacts/PresentationSlidePreview.tsx`
+  - `frontend/src/components/review/ReviewQueueTable.tsx`
+  - `frontend/src/app/review/page.tsx`
+  - `frontend/src/app/admin/users/page.tsx`, `audit-logs/page.tsx`, `security-events/page.tsx`
+  - `frontend/src/components/admin/UserTable.tsx`, `AuditLogTable.tsx`, `SecurityEventTable.tsx`
+  - `frontend/src/app/transformations/[transformationId]/page.tsx`
+  - `frontend/src/app/login/page.tsx`, `sign-in/page.tsx`, `sign-up/page.tsx`
+- **How to View & Verify:**
+  - Open `http://localhost:3000/dashboard` to verify the executive light dashboard and white sidebar with official logo.
+  - Open `http://localhost:3000/sessions/SES-27067325` to inspect the Dual-Mode Split Workbench and switch between Presentation, Executive Summary, Security Advisory, Visual Infographic, and Video Package.
+  - Build check: `npm run build` passes with 14/14 static and dynamic routes compiled.
+
+---
+
+### [FEAT-AI-006] Semantic Extraction Scoping Fix, Substantive Document Depth, Dynamic Artifact Tabs & Social Post Viewer
+- **Role / Owner:** P1 (AI Engineer) & P2 (Frontend Engineer)
+- **Date Added:** 2026-09-04
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  Addressed core pipeline accuracy, document depth, and artifact presentation issues:
+  1. **Fixed Python `UnboundLocalError`:** In `backend/app/ai/extraction/semantic.py`, removed a local re-import of `settings` inside an `except` block that caused `extract_semantic_data` to crash on every document ingestion and fall back to an empty 1-sentence dummy claim. Real semantic extraction now reliably runs on uploaded files.
+  2. **Substantive Depth Directives:** Removed the terseness constraint (`"Keep explanations terse and high-level; prioritize brevity"`) from `planner.py` and added quality directives to `compiler.py` commanding publication-grade, authoritative narratives with technical depth, concrete metrics, and operational impact.
+  3. **Dynamic Artifact Tabs Filtering:** Updated `frontend/src/components/artifacts/ArtifactViewer.tsx` to dynamically inspect `available_formats`. Unselected or ungenerated formats (e.g. video packages or infographics when not chosen) are now hidden from the format switcher.
+  4. **Social Communication Viewer:** Built `frontend/src/components/artifacts/SocialPostViewer.tsx` featuring realistic LinkedIn Executive Post and X/Twitter Thread simulators with 1-click clipboard copying.
+- **Key Modules / Files Modified:**
+  - `backend/app/ai/extraction/semantic.py`
+  - `backend/app/ai/planner/planner.py`
+  - `backend/app/ai/prompts/compiler.py`
+  - `frontend/src/components/artifacts/ArtifactViewer.tsx`
+  - `frontend/src/components/artifacts/SocialPostViewer.tsx`
+  - `frontend/src/types/artifact.ts`
+  - `frontend/src/app/sessions/[sessionId]/page.tsx`
+- **How to View & Verify:**
+  - Run backend tests: `cd backend && uv run pytest` (18 passed).
+  - Run frontend build: `cd frontend && npm run build` (compiled in ~3s).
+  - Open `http://localhost:3000/sessions/SES-INCIDENT-88412` to observe filtered artifact tabs matching the selected formats.
+
+---
+
 ### [FEAT-000] Initial Repository Scaffold & Shared Contracts
 - **Role / Owner:** Shared (All Roles)
 - **Date Added:** 2026-09-02
@@ -235,6 +344,60 @@
   - `.github/workflows/ci.yml`
 - **How to View & Verify:**
   - Check git status and branches: `git status`, `git branch -a`
+
+---
+
+### [FEAT-SYS-001] Session DB Persistence, Ingestion Terminal Logging, Post-Ingestion Output Flow & UI Clearance Fix
+- **Role / Owner:** Fullstack (P1 AI / P2 Frontend / P3 Backend)
+- **Date Added:** 2026-09-04
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  Fixed four critical application workflows:
+  1. **Session & Document Database Persistence**: Injected `db: DBSession = Depends(get_db)` into all endpoints in `sessions.py`, `documents.py`, and `transformations.py`, passing `db` to `SessionService`, `DocumentService`, and `TransformationService`. Auto-provisioned user identities in `SessionService` to satisfy PostgreSQL foreign keys, and updated `list_sessions` to load and display all persistent sessions.
+  2. **Ingestion Terminal Logging**: Enhanced `orchestrator.py` with stage-by-stage logging for all 6 ingestion stages (storage fetch, block parsing, deterministic rules, semantic LLM extraction, CCO build, pgvector embeddings). Configured unbuffered standard output logging in `logging.py`.
+  3. **Post-Ingestion Output Flow ("What to Generate")**: After document upload and CCO extraction, the session workspace guides the user to Step 3: Configure Target Formats (`activeStage = "plan"` / `?tab=transform`), presenting the interactive format cards (PPTX Presentation, Executive Summary, Security Advisory, Infographic, Storyboard, Social Communication) and generation parameters before showing artifacts.
+  4. **UI Layout Clearance Fix**: Resolved the header clipping bug where `<main>` kept previous scroll offsets by attaching a scroll reset (`scrollTop = 0`) on route changes in `AppShell.tsx`, and added generous top spacing to `SessionWorkspacePage`.
+- **Touched / Created Files:**
+  - `backend/app/api/v1/sessions.py` (Injected get_db into all endpoints)
+  - `backend/app/api/v1/documents.py` (Injected get_db and added upload logging)
+  - `backend/app/api/v1/transformations.py` (Injected get_db and passed db to worker)
+  - `backend/app/services/session_service.py` (Auto-provisioned users, added DB logging)
+  - `backend/app/core/logging.py` (Added stdout handler & logger propagation)
+  - `backend/app/jobs/orchestrator.py` (Stage-by-stage terminal logging)
+  - `backend/tests/conftest.py` (Added unit test database fixtures)
+  - `frontend/src/components/layout/AppShell.tsx` (Route change scroll-to-top reset)
+  - `frontend/src/app/sessions/[sessionId]/page.tsx` (Stage switcher, planner vs artifacts view, unclipped layout)
+  - `frontend/src/app/sessions/new/page.tsx` (Redirect to tab=transform after ingestion)
+  - `frontend/src/app/transformations/[transformationId]/page.tsx` (Dynamic session return link)
+  - `frontend/src/lib/api.ts` (Added fetchSession and Clerk token header forward)
+- **How to View & Verify:**
+  - Run backend test suite: `uv run pytest` (18/18 passing)
+  - Run frontend build: `npm run build` (15/15 routes compiling)
+  - Open `http://localhost:3000/sessions/new`, create a session and observe real-time terminal ingestion logs, redirection to Step 3 "What would you like to generate?", unclipped header layout, and persistent entry on `http://localhost:3000/sessions`.
+
+---
+
+### [FEAT-AUTH-002] Institutional Auth Portal Redesign, Email-Based Role Derivation & Standalone Auth Shell
+- **Role / Owner:** P2 (Frontend) / P3 (Backend)
+- **Date Added:** 2026-09-04
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. Redesigned `/login` into a full-screen, dual-panel institutional authentication gateway featuring official ContentForge AI emblem (`/logo.png`), national document intelligence branding, and security compliance pillars (Zero-Hallucination Grounding, Automated Role Governance, Cryptographic SHA-256 Ledger).
+  2. Fixed Clerk routing runtime warning by switching `<SignIn />` to `routing="hash"`.
+  3. Removed the artificial "Demo Quick Access Role Switcher" and obsolete "Reviewer" role option. Implemented automatic identity evaluation in `useAuthStore.ts` and `Topbar.tsx` where admin privileges are derived directly from verified account email (`email.includes('admin')`), while default users operate as Analysts.
+  4. Decoupled auth routes (`/login`, `/sign-in`, `/sign-up`) from `AppShell` navigation so workspace sidebars and topbars are omitted on public auth portals.
+- **Key Modules / Files Modified:**
+  - `frontend/src/app/login/page.tsx` (Dual-panel enterprise login layout, hash routing)
+  - `frontend/src/store/useAuthStore.ts` (Email-based role derivation helper `getRoleFromEmail`)
+  - `frontend/src/components/layout/Topbar.tsx` (Automatic role sync from authenticated email)
+  - `frontend/src/components/layout/AppShell.tsx` (Standalone auth page detection)
+- **How to View & Verify:**
+  - Open `http://localhost:3000/login` in browser.
+  - Observe clean dual-panel institutional layout with 0 Next.js error badges, no sidebar/topbar wrapping, and clean Clerk authentication card.
+  - Log in with any email containing "admin" to verify automatic `ADMIN` role assignment in topbar; log in with standard email to verify `ANALYST` role assignment.
+
 
 ---
 

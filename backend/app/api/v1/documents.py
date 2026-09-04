@@ -10,10 +10,14 @@ Section 8 of Specification:
 - GET  /api/v1/documents/{id}/evidence
 """
 
+import logging
+from typing import Optional
 from fastapi import APIRouter, Depends, File, UploadFile, status, Query
 from fastapi.responses import Response, StreamingResponse
+from sqlalchemy.orm import Session as DBSession
 from app.auth.clerk import ClerkUserPayload
 from app.auth.dependencies import require_permission, require_user
+from app.core.database import get_db
 from app.core.errors import APIError
 from app.schemas.document import (
     DocumentCCOResponse,
@@ -23,6 +27,7 @@ from app.schemas.document import (
 )
 from app.services.document_service import DocumentService
 
+logger = logging.getLogger("app.api.documents")
 router = APIRouter(tags=["Documents"])
 
 
@@ -36,6 +41,7 @@ async def upload_document(
     file: UploadFile = File(...),
     stream: bool = Query(False, description="Stream real-time ingestion progress"),
     user: ClerkUserPayload = Depends(require_permission("upload_source")),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Uploads a source document (PDF/DOCX/PPTX/TXT/MD), validates MIME type,
@@ -45,21 +51,25 @@ async def upload_document(
     if not content:
         raise APIError("EMPTY_FILE", "Uploaded document file is empty.", status_code=400)
 
-    service = DocumentService()
+    filename = file.filename or "uploaded_document.pdf"
+    mime_type = file.content_type or "application/pdf"
+    logger.info(f"[UPLOAD] Document received: '{filename}' ({len(content)} bytes, {mime_type}) for session {session_id} by {user.user_id}")
+
+    service = DocumentService(db=db)
     if stream:
         return await service.upload_document_stream(
             session_id=session_id,
-            filename=file.filename or "uploaded_document.pdf",
+            filename=filename,
             content=content,
-            mime_type=file.content_type or "application/pdf",
+            mime_type=mime_type,
             user_id=user.user_id,
         )
     else:
         return await service.upload_document(
             session_id=session_id,
-            filename=file.filename or "uploaded_document.pdf",
+            filename=filename,
             content=content,
-            mime_type=file.content_type or "application/pdf",
+            mime_type=mime_type,
             user_id=user.user_id,
         )
 
@@ -68,11 +78,12 @@ async def upload_document(
 async def get_document(
     id: str,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Retrieves document metadata.
     """
-    service = DocumentService()
+    service = DocumentService(db=db)
     doc = service.get_document(id)
     if not doc:
         raise APIError("DOCUMENT_NOT_FOUND", f"Document with ID '{id}' does not exist.", status_code=404)
@@ -83,11 +94,12 @@ async def get_document(
 async def get_document_versions(
     id: str,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Retrieves version history for a document.
     """
-    service = DocumentService()
+    service = DocumentService(db=db)
     doc = service.get_document(id)
     if not doc:
         raise APIError("DOCUMENT_NOT_FOUND", f"Document with ID '{id}' does not exist.", status_code=404)
@@ -107,11 +119,12 @@ async def get_document_versions(
 async def download_document(
     id: str,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Streams raw binary source document file directly from Object Storage.
     """
-    service = DocumentService()
+    service = DocumentService(db=db)
     doc = service.get_document(id)
     if not doc:
         raise APIError("DOCUMENT_NOT_FOUND", f"Document with ID '{id}' does not exist.", status_code=404)
@@ -131,11 +144,12 @@ async def download_document(
 async def get_document_cco(
     id: str,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Retrieves Canonical Content Object (CCO) extracted from source document.
     """
-    service = DocumentService()
+    service = DocumentService(db=db)
     cco = service.get_document_cco(id)
     if not cco:
         raise APIError("CCO_NOT_FOUND", f"CCO for document ID '{id}' does not exist.", status_code=404)
@@ -154,9 +168,10 @@ async def get_document_cco(
 async def get_document_evidence(
     id: str,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Retrieves source chunk evidence references for artifact claims.
     """
-    service = DocumentService()
+    service = DocumentService(db=db)
     return service.get_document_evidence(id)

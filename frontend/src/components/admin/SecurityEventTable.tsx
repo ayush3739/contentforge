@@ -10,37 +10,37 @@ export default function SecurityEventTable() {
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-xs">
       <div>
-        <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-          <ShieldAlert className="h-4 w-4 text-rose-400" /> Security Threat & Injection Log
+        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <ShieldAlert className="h-4 w-4 text-rose-600" /> Security Threat & Injection Log
         </h3>
-        <p className="text-xs text-slate-400 mt-0.5">Persisted cybersecurity events, prompt injections, and RBAC violations</p>
+        <p className="text-xs text-slate-500 mt-0.5">Persisted cybersecurity events, prompt injections, and RBAC violations</p>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs font-mono">
           <thead>
-            <tr className="border-b border-slate-800 text-slate-400 font-sans">
-              <th className="py-3 px-3 font-semibold">Timestamp</th>
-              <th className="py-3 px-3 font-semibold">Event Type</th>
-              <th className="py-3 px-3 font-semibold">Severity</th>
-              <th className="py-3 px-3 font-semibold">Source IP</th>
-              <th className="py-3 px-3 font-semibold">Payload Summary</th>
+            <tr className="border-b border-slate-200 text-slate-500 bg-slate-50/60 font-sans">
+              <th className="py-3 px-3 font-bold uppercase text-[10px] tracking-wider">Timestamp</th>
+              <th className="py-3 px-3 font-bold uppercase text-[10px] tracking-wider">Event Type</th>
+              <th className="py-3 px-3 font-bold uppercase text-[10px] tracking-wider">Severity</th>
+              <th className="py-3 px-3 font-bold uppercase text-[10px] tracking-wider">Source IP</th>
+              <th className="py-3 px-3 font-bold uppercase text-[10px] tracking-wider">Payload Summary</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60">
+          <tbody className="divide-y divide-slate-100">
             {events.map((e) => (
-              <tr key={e.id} className="hover:bg-slate-800/30 transition-colors">
-                <td className="py-3.5 px-3 text-slate-400">{e.created_at}</td>
-                <td className="py-3.5 px-3 font-bold text-rose-300">{e.event_type}</td>
+              <tr key={e.id} className="hover:bg-slate-50/80 transition-colors">
+                <td className="py-3.5 px-3 text-slate-500">{e.created_at}</td>
+                <td className="py-3.5 px-3 font-bold text-rose-700">{e.event_type}</td>
                 <td className="py-3.5 px-3 font-sans">
-                  <span className="px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-bold uppercase">
+                  <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold uppercase">
                     {e.severity}
                   </span>
                 </td>
-                <td className="py-3.5 px-3 text-slate-300">{e.source_ip}</td>
-                <td className="py-3.5 px-3 text-slate-400 font-sans">{e.payload_summary}</td>
+                <td className="py-3.5 px-3 text-slate-700">{e.source_ip}</td>
+                <td className="py-3.5 px-3 text-slate-600 font-sans">{e.payload_summary}</td>
               </tr>
             ))}
           </tbody>

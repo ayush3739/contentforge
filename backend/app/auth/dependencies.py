@@ -19,14 +19,23 @@ async def get_current_user(
     authorization: Optional[str] = Header(None),
 ) -> ClerkUserPayload:
     """
-    Extracts Bearer token from Header or Authorization and validates user.
+    Extracts Bearer token from Authorization header and decodes the Clerk JWT.
+    Role is read from Clerk's public_metadata.role claim embedded in the token.
+    To change a user's role: update it in Clerk Dashboard -> User -> Public Metadata.
     """
     token = authorization
     if not token and "authorization" in request.headers:
         token = request.headers.get("authorization")
 
     if not token:
-        # Fallback to dev test user if no token provided in non-production
+        # In production, missing token must always be rejected
+        if settings.ENVIRONMENT == "production":
+            raise APIError(
+                code="MISSING_TOKEN",
+                message="Authentication token is required.",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+            )
+        # Dev/test fallback: return a default analyst so local development works without Clerk
         return ClerkUserPayload(
             user_id="USR-DEFAULT-001",
             clerk_id="user_2default_001",

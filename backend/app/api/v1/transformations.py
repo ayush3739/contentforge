@@ -7,9 +7,12 @@ Section 13, 14, and 15 of Specification:
 - GET  /api/v1/transformations/{id}/status
 """
 
+from typing import Optional
 from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session as DBSession
 from app.auth.clerk import ClerkUserPayload
 from app.auth.dependencies import require_permission, require_user
+from app.core.database import get_db
 from app.core.errors import APIError
 from app.jobs.worker import dispatch_transformation_job
 from app.schemas.transformation import (
@@ -26,15 +29,16 @@ router = APIRouter(prefix="/transformations", tags=["Transformations"])
 async def create_transformation(
     payload: TransformationCreate,
     user: ClerkUserPayload = Depends(require_permission("generate")),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Validates transformation request, creates persistent DB record, and enqueues async processing job.
     Returns HTTP 202 Accepted with transformation ID and QUEUED status.
     """
-    service = TransformationService()
+    service = TransformationService(db=db)
     record = service.create_transformation(payload, user_id=user.user_id)
 
-    # Queue background AI execution pipeline
+    # Queue background AI execution pipeline (job creates its own DB session)
     dispatch_transformation_job(
         transformation_id=record["transformation_id"],
         session_id=payload.session_id,
@@ -63,11 +67,12 @@ async def create_transformation(
 async def get_transformation(
     id: str,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Retrieves full details for a transformation request.
     """
-    service = TransformationService()
+    service = TransformationService(db=db)
     trans = service.get_transformation(id)
     if not trans:
         raise APIError("TRANSFORMATION_NOT_FOUND", f"Transformation request '{id}' does not exist.", status_code=404)
@@ -78,12 +83,13 @@ async def get_transformation(
 async def get_transformation_status(
     id: str,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Polling endpoint returning status transitions:
     QUEUED -> PROCESSING -> GENERATING -> VERIFYING -> RENDERING -> COMPLETED / FAILED / REVIEW_REQUIRED
     """
-    service = TransformationService()
+    service = TransformationService(db=db)
     trans = service.get_transformation(id)
     if not trans:
         raise APIError("TRANSFORMATION_NOT_FOUND", f"Transformation request '{id}' does not exist.", status_code=404)

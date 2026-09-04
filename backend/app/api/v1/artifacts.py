@@ -11,10 +11,13 @@ Section 12 & 20 of Specification:
 - POST /api/v1/artifacts/{id}/finalize
 """
 
+from typing import Optional
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import Response
+from sqlalchemy.orm import Session as DBSession
 from app.auth.clerk import ClerkUserPayload
 from app.auth.dependencies import require_permission, require_user
+from app.core.database import get_db
 from app.core.errors import APIError
 from app.schemas.artifact import (
     ArtifactFinalizeRequest,
@@ -32,11 +35,12 @@ router = APIRouter(prefix="/artifacts", tags=["Artifacts"])
 async def get_artifact(
     id: str,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Retrieves metadata and structured JSON content for a generated artifact.
     """
-    service = ArtifactService()
+    service = ArtifactService(db=db)
     art = service.get_artifact(id)
     if not art:
         raise APIError("ARTIFACT_NOT_FOUND", f"Artifact with ID '{id}' does not exist.", status_code=404)
@@ -47,11 +51,12 @@ async def get_artifact(
 async def get_artifact_versions(
     id: str,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Retrieves version history list for an artifact.
     """
-    service = ArtifactService()
+    service = ArtifactService(db=db)
     art = service.get_artifact(id)
     if not art:
         raise APIError("ARTIFACT_NOT_FOUND", f"Artifact with ID '{id}' does not exist.", status_code=404)
@@ -71,11 +76,12 @@ async def get_artifact_versions(
 async def download_artifact(
     id: str,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Streams binary file (PPTX/PDF/DOCX/SVG/PNG) from Object Storage.
     """
-    service = ArtifactService()
+    service = ArtifactService(db=db)
     res = await service.get_artifact_binary(id)
     if not res:
         raise APIError("ARTIFACT_NOT_FOUND", f"Artifact binary for '{id}' does not exist.", status_code=404)
@@ -92,11 +98,12 @@ async def download_artifact(
 async def get_artifact_verification(
     id: str,
     user: ClerkUserPayload = Depends(require_permission("view_verification")),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Retrieves grounding score and compliance verification details for an artifact.
     """
-    service = ArtifactService()
+    service = ArtifactService(db=db)
     art = service.get_artifact(id)
     if not art:
         raise APIError("ARTIFACT_NOT_FOUND", f"Artifact with ID '{id}' does not exist.", status_code=404)
@@ -116,11 +123,12 @@ async def get_artifact_verification(
 async def reverify_artifact(
     id: str,
     user: ClerkUserPayload = Depends(require_permission("view_verification")),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Re-runs grounding verification audit on artifact claims against CCO evidence.
     """
-    service = ArtifactService()
+    service = ArtifactService(db=db)
     res = service.verify_artifact(id, user_id=user.user_id)
     return ArtifactVerificationResponse(**res)
 
@@ -130,11 +138,12 @@ async def revise_artifact(
     id: str,
     payload: ArtifactReviseRequest,
     user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Submits prompt revision adjustments for artifact regeneration.
     """
-    service = ArtifactService()
+    service = ArtifactService(db=db)
     return service.revise_artifact(id, payload, user_id=user.user_id)
 
 
@@ -143,9 +152,10 @@ async def finalize_artifact(
     id: str,
     payload: ArtifactFinalizeRequest,
     user: ClerkUserPayload = Depends(require_permission("approve_reject")),
+    db: Optional[DBSession] = Depends(get_db),
 ):
     """
     Reviewer approval / sign-off endpoint for final artifact publishing.
     """
-    service = ArtifactService()
+    service = ArtifactService(db=db)
     return service.finalize_artifact(id, payload, user_id=user.user_id)

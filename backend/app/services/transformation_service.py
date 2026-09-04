@@ -32,7 +32,7 @@ class TransformationService:
                     cco = (
                         self.db.query(CCOVersion)
                         .filter(CCOVersion.document_id == payload.source_document_id)
-                        .order_by(CCOVersion.version.desc())
+                        .order_by(CCOVersion.version_number.desc())
                         .first()
                     )
                     if cco:
