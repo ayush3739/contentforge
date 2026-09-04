@@ -19,14 +19,16 @@ async def get_current_user(
     authorization: Optional[str] = Header(None),
 ) -> ClerkUserPayload:
     """
-    Extracts Bearer token from Header or Authorization and validates user.
+    Extracts Bearer token from Authorization header and decodes the Clerk JWT.
+    Role is read from Clerk's public_metadata.role claim embedded in the token.
+    To change a user's role: update it in Clerk Dashboard -> User -> Public Metadata.
     """
     token = authorization
     if not token and "authorization" in request.headers:
         token = request.headers.get("authorization")
 
     if not token:
-        # Fallback to dev test user if no token provided in non-production
+        # Fallback to dev analyst user when no token provided (non-production)
         return ClerkUserPayload(
             user_id="USR-DEFAULT-001",
             clerk_id="user_2default_001",

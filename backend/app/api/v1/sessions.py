@@ -41,10 +41,11 @@ async def list_sessions(
     db: Optional[DBSession] = Depends(get_db),
 ):
     """
-    Lists workspace sessions accessible to team workspace.
+    Lists workspace sessions created by current user, or all sessions for admins.
     """
     service = SessionService(db=db)
-    return service.list_sessions(user_id=None)
+    user_filter = None if user.role == "admin" else user.user_id
+    return service.list_sessions(user_id=user_filter)
 
 
 @router.get("/{id}", response_model=SessionDetailResponse)
