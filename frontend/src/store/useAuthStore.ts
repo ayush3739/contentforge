@@ -2,9 +2,18 @@ import { create } from "zustand";
 import { AuthState, Role, UserProfile } from "@/types/auth";
 
 export function getRoleFromEmail(email?: string | null): Role {
+  // SECURITY NOTE: Roles should ultimately be derived from Clerk's public_metadata
+  // (JWT claim `publicMetadata.role`) rather than email pattern matching.
+  // Email-based derivation is used here as a development/bootstrap convenience ONLY.
+  // In production, set `role` in Clerk Dashboard → User → public_metadata.
   if (!email) return "analyst";
   const lower = email.toLowerCase().trim();
-  if (lower.includes("admin") || lower.startsWith("admin")) {
+  // Use exact-match against a known admin email list — do NOT use substring match
+  // as "user+admin@example.com" would incorrectly match email.includes("admin").
+  const ADMIN_EMAILS: string[] = (
+    process.env.NEXT_PUBLIC_ADMIN_EMAILS || ""
+  ).split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  if (ADMIN_EMAILS.length > 0 && ADMIN_EMAILS.includes(lower)) {
     return "admin";
   }
   return "analyst";

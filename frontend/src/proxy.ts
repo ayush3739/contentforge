@@ -2,9 +2,15 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 export default function middleware(req: any, event: any) {
-  // If Clerk secret key is not set or bypass is enabled, allow requests through
-  if (!process.env.CLERK_SECRET_KEY || process.env.DISABLE_CLERK_AUTH === "true") {
+  // Allow explicit bypass only in non-production environments (dev/test)
+  const clerkDisabled = process.env.DISABLE_CLERK_AUTH === "true";
+  if (clerkDisabled && process.env.NODE_ENV !== "production") {
     return NextResponse.next();
+  }
+
+  // Fail closed in production when Clerk is not configured
+  if (!process.env.CLERK_SECRET_KEY) {
+    return new NextResponse("Authentication service not configured (missing CLERK_SECRET_KEY)", { status: 500 });
   }
 
   return clerkMiddleware(async (auth, request) => {

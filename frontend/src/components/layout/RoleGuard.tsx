@@ -22,7 +22,7 @@ export default function RoleGuard({
         <p className="text-sm text-slate-600 mt-2 max-w-md">
           Your active role (<span className="uppercase font-bold text-rose-700">{activeRole}</span>) does not have authorization to view this resource.
         </p>
-        <p className="text-xs text-slate-500 mt-4">Use the topbar role switcher to test Reviewer or Admin views.</p>
+        <p className="text-xs text-slate-500 mt-4">If you believe this is an error, contact an administrator to request elevated access.</p>
       </div>
     );
   }
