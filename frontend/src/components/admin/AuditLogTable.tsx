@@ -1,13 +1,16 @@
 "use client";
 
 import { AuditLogItem } from "@/types/admin";
+import { useAuthStore } from "@/store/useAuthStore";
 import { FileText, CheckCircle2 } from "lucide-react";
 
 export default function AuditLogTable() {
+  const { user } = useAuthStore();
+  const actorId = user?.user_id || "USR-OPERATOR";
+
   const logs: AuditLogItem[] = [
-    { id: "AUDIT-901", user_id: "USR-001", action: "ARTIFACT_APPROVED", resource_type: "artifact", resource_id: "ART-001", details_json: { reviewer: "reviewer01" }, created_at: "10:42:11" },
-    { id: "AUDIT-900", user_id: "USR-001", action: "TRANSFORMATION_STARTED", resource_type: "transformation", resource_id: "TR-88412", details_json: { outputs: ["presentation"] }, created_at: "10:35:00" },
-    { id: "AUDIT-899", user_id: "USR-001", action: "SESSION_CREATED", resource_type: "session", resource_id: "SES-INCIDENT-88412", details_json: {}, created_at: "10:20:15" },
+    { id: "AUDIT-901", user_id: actorId, action: "USER_AUTHENTICATED", resource_type: "auth", resource_id: "SESSION", details_json: {}, created_at: "Active" },
+    { id: "AUDIT-900", user_id: actorId, action: "SYSTEM_ACCESS", resource_type: "workspace", resource_id: "PORTAL", details_json: {}, created_at: "Active" },
   ];
 
   return (

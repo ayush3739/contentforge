@@ -59,6 +59,7 @@ secrets/
 *.db
 uploads/
 storage/
+backend/storage_data/
 temp/
 tmp/
 

@@ -1,16 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UserAccount } from "@/types/admin";
 import { getRoleBadgeClass } from "@/lib/utils";
+import { useAuthStore } from "@/store/useAuthStore";
 import { Users, UserPlus } from "lucide-react";
 
 export default function UserTable() {
-  const [users, setUsers] = useState<UserAccount[]>([
-    { id: "USR-001", clerk_id: "user_2analyst_001", name: "Anand Kumar", email: "analyst01@contentforge.ai", role: "analyst", status: "active" },
-    { id: "USR-002", clerk_id: "user_2reviewer_001", name: "Rajesh Singh", email: "reviewer01@contentforge.ai", role: "reviewer", status: "active" },
-    { id: "USR-003", clerk_id: "user_2admin_001", name: "System Admin", email: "admin01@contentforge.ai", role: "admin", status: "active" },
-  ]);
+  const { user: currentUser } = useAuthStore();
+  const [users, setUsers] = useState<UserAccount[]>([]);
+
+  useEffect(() => {
+    const list: UserAccount[] = [];
+    if (currentUser) {
+      list.push({
+        id: currentUser.user_id,
+        clerk_id: currentUser.user_id,
+        name: currentUser.username || "Authenticated Operator",
+        email: currentUser.email || `${currentUser.user_id}@contentforge.ai`,
+        role: currentUser.role,
+        status: "active",
+      });
+    } else {
+      list.push({
+        id: "USR-ANALYST",
+        clerk_id: "user_2analyst_001",
+        name: "Operator",
+        email: "analyst@contentforge.ai",
+        role: "analyst",
+        status: "active",
+      });
+    }
+    setUsers(list);
+  }, [currentUser]);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-xs">

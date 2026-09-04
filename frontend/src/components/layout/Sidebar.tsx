@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useUIStore } from "@/store/useUIStore";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -18,14 +18,30 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { activeRole } = useAuthStore();
+  const router = useRouter();
+  const { activeRole, logout } = useAuthStore();
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const { user: clerkUser } = useUser();
+  const clerk = useClerk();
+
+  const handleLogout = async () => {
+    logout();
+    try {
+      if (clerk && clerk.signOut) {
+        await clerk.signOut();
+      }
+    } catch (e) {
+      // ignore
+    }
+    router.push("/login");
+  };
 
   const displayName =
     clerkUser?.username ||
@@ -42,7 +58,7 @@ export default function Sidebar() {
     { label: "Sessions", href: "/sessions", icon: FolderKanban, show: isAnalyst },
     { label: "New Session", href: "/sessions/new", icon: PlusCircle, show: isAnalyst },
     { label: "Review Queue", href: "/review", icon: ClipboardCheck, show: isReviewer, badge: "3" },
-    { label: "Artifacts", href: "/artifacts/ART-001", icon: FileSpreadsheet, show: isAnalyst },
+    { label: "Artifacts", href: "/artifacts", icon: FileSpreadsheet, show: isAnalyst },
   ];
 
   const adminItems = [
@@ -54,12 +70,12 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "relative flex flex-col border-r border-slate-200 bg-white transition-all duration-300 z-30 select-none shadow-xs",
+        "relative flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 z-30 select-none shadow-xs text-slate-900 dark:text-slate-100",
         sidebarOpen ? "w-64" : "w-20"
       )}
     >
       {/* Brand Header with Official Logo & Clean Typography */}
-      <div className="flex h-18 items-center justify-between px-4 border-b border-slate-200 bg-white">
+      <div className="flex h-18 items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden py-1 group">
           <img
             src="/logo.png"
@@ -171,21 +187,41 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* User Profile Card */}
-      {sidebarOpen && (
-        <div className="p-3 m-3 mb-6 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col gap-1.5 text-xs shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-medium">Signed in as:</span>
-            <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-blue-100 text-blue-800 border border-blue-200 uppercase">
-              {activeRole}
-            </span>
-          </div>
-          <div className="font-bold text-slate-800 truncate flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-            <span className="truncate">{displayName}</span>
-          </div>
-        </div>
-      )}
+      {/* User Profile Card & Logout Button */}
+      <div className="p-3 m-3 mb-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 flex flex-col gap-2 text-xs shadow-xs">
+        {sidebarOpen ? (
+          <>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+              <span className="text-[11px] font-medium">Signed in as:</span>
+              <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 uppercase">
+                {activeRole}
+              </span>
+            </div>
+            <div className="font-bold text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+              <span className="truncate">{displayName}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <ThemeToggle className="flex-1 text-xs py-1.5" />
+              <button
+                onClick={handleLogout}
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-colors shadow-2xs cursor-pointer"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span>Log Out</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <button
+            onClick={handleLogout}
+            title="Log Out"
+            className="flex items-center justify-center p-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors shadow-2xs cursor-pointer"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </aside>
   );
 }

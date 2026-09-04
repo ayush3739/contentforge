@@ -41,8 +41,7 @@ export default function SessionWorkspacePage({
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const viewParam = searchParams.get("view");
-  const { currentSession, setCurrentSession, activeTab, setActiveTab } =
-    useSessionStore();
+  const { currentSession, setCurrentSession, activeTab, setActiveTab } = useSessionStore();
   const [layoutMode, setLayoutMode] = useState<"split" | "tabs">("split");
   const [activeStage, setActiveStage] = useState<"plan" | "artifacts">(
     tabParam === "transform" ? "plan" : viewParam === "artifacts" ? "artifacts" : "plan"
@@ -83,32 +82,91 @@ export default function SessionWorkspacePage({
     }
   }, [sessionId, tabParam, viewParam, setCurrentSession]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // Dynamic CCO claims from session store or current session
+  const claims = currentCCO?.claims || [];
+  const sourceDocName = currentSession?.documents?.[0]?.name || "Source Document";
 
-  const activeArtifact =
-    artifacts.length > 0
-      ? artifacts[selectedArtifactIdx] || artifacts[0]
-      : null;
-
-  const getArtifactIcon = (type: string) => {
-    switch (type) {
-      case "presentation":
-        return <Presentation className="h-3.5 w-3.5 text-blue-600" />;
-      case "executive_summary":
-        return <FileText className="h-3.5 w-3.5 text-indigo-600" />;
-      case "advisory":
-        return <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />;
-      case "infographic":
-        return <BarChart3 className="h-3.5 w-3.5 text-emerald-600" />;
-      case "video_package":
-        return <Video className="h-3.5 w-3.5 text-rose-600" />;
-      case "social_post":
-        return <Share2 className="h-3.5 w-3.5 text-sky-600" />;
-      default:
-        return <FileText className="h-3.5 w-3.5 text-slate-600" />;
-    }
+  const mockArtifact = {
+    artifact_id: "ART-001",
+    transformation_request_id: "TR-88412",
+    cco_version_id: "CCO-v2-88412",
+    type: "presentation",
+    version: 1,
+    status: "verified" as const,
+    filename: "presentation_ART-001.pptx",
+    download_url: "/api/v1/artifacts/ART-001/download",
+    checksum: "sha256:8a91f42e391b002c91847120a11c8d",
+    available_formats: ["presentation", "executive_summary", "advisory"],
+    content_json: {
+      title: "Executive Incident Briefing: Ransomware Attack",
+      executive_overview:
+        "Comprehensive containment briefing covering the August 14 anomaly across core payment gateways. 14 production nodes were isolated within 24 hours, capping financial impact at $2.5 million with zero unencrypted customer PII compromised.",
+      key_findings: [
+        { finding: "14 core production payment gateway systems quarantined within 24 hours of anomaly detection.", impact: "High", evidence_ref: "chunk-001" },
+        { finding: "Threat actor targeted unpatched Kernel vulnerability CVE-2024-3094.", impact: "High", evidence_ref: "chunk-001" },
+        { finding: "Total financial exposure ceiling capped at $2.5 million under corporate cyber insurance.", impact: "Medium", evidence_ref: "chunk-002" },
+        { finding: "Zero unencrypted customer PII or transaction records were exfiltrated.", impact: "Low", evidence_ref: "chunk-003" },
+      ],
+      impact: [
+        { category: "Operational Impact", description: "Payment processing rerouted to secondary clusters with 42 min downtime.", severity: "Contained" },
+        { category: "Financial Exposure", description: "Remediation and audit costs restricted to $2.5 million max.", severity: "Covered" },
+        { category: "Statutory Reporting", description: "Regulatory notifications filed with national CERT authorities within mandatory window.", severity: "Compliant" },
+      ],
+      recommended_actions: [
+        { action: "Deploy Kernel patch KB-9912 across all secondary cluster environments", priority: "Immediate", timeline: "24 Hours", owner: "SecOps Lead" },
+        { action: "Rotate all cluster service account certificates and access tokens", priority: "High", timeline: "48 Hours", owner: "DevSecOps Team" },
+        { action: "Conduct third-party post-incident audit and update continuity documentation", priority: "Medium", timeline: "14 Days", owner: "Chief Risk Officer" },
+      ],
+      slides: [
+        {
+          slide_number: 1,
+          title: "Incident Overview & Quarantine Impact",
+          key_message: "14 payment gateway systems quarantined within 24 hours.",
+          body: [
+            "Breach detected on August 14, 2026 across core payment processing nodes.",
+            "Threat actor exploited CVE-2024-3094 vulnerability.",
+            "450 GB of encrypted logs exfiltrated before node isolation.",
+          ],
+          speaker_notes: "Walk executive leaders through the initial 24-hour response timeline and emphasize node quarantine.",
+          evidence_refs: ["chunk-001"],
+        },
+        {
+          slide_number: 2,
+          title: "Financial & Operational Risk Assessment",
+          key_message: "Financial impact capped at $2.5M; remediation underway.",
+          body: [
+            "Estimated financial impact totals $2.5 million.",
+            "All compromised credentials revoked and patch KB-9912 deployed.",
+            "No unencrypted PII data compromised.",
+          ],
+          speaker_notes: "Reassure stakeholders that customer data integrity is completely intact.",
+          evidence_refs: ["chunk-002"],
+        },
+        {
+          slide_number: 3,
+          title: "Remediation Roadmap & Verification",
+          key_message: "Kernel patch KB-9912 verified across all environments.",
+          body: [
+            "Emergency Kernel patch KB-9912 rolled out across 100% of cluster nodes.",
+            "Enhanced anomaly heuristics active at edge firewalls.",
+            "Formal compliance report submitted to CERT-In.",
+          ],
+          speaker_notes: "Conclude with long-term defensive hardening posture and regulatory compliance.",
+          evidence_refs: ["chunk-003"],
+        },
+      ],
+    },
+    verification: {
+      status: "PASSED" as const,
+      grounding_score: 0.99,
+      consistency_score: 0.98,
+      unsupported_claim_count: 0,
+      issues: [
+        { claim: "14 production systems compromised", status: "supported" as const, evidence_ref: "chunk-001" },
+        { claim: "Threat actor exploited CVE-2024-3094", status: "supported" as const, evidence_ref: "chunk-001" },
+        { claim: "Estimated financial impact is $2.5M", status: "supported" as const, evidence_ref: "chunk-002" },
+      ],
+    },
   };
 
   const tabs = [
@@ -226,12 +284,11 @@ export default function SessionWorkspacePage({
               <ShieldCheck className="h-3.5 w-3.5" /> 99% Grounded
             </span>
             <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-mono font-medium">
-              CCO v1 (Active)
+              CCO v2 (Active)
             </span>
           </div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            {currentSession?.name ||
-              "Incident Response & Operational Transformation Workspace"}
+            {currentSession?.name || "Incident Response & Operational Transformation Workspace"}
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             {currentSession?.description ||
@@ -245,21 +302,19 @@ export default function SessionWorkspacePage({
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => setActiveStage("plan")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeStage === "plan"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeStage === "plan"
                   ? "bg-white text-blue-700 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
-              }`}
+                }`}
             >
               <Sparkles className="h-3.5 w-3.5" /> Plan Outputs
             </button>
             <button
               onClick={() => setActiveStage("artifacts")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeStage === "artifacts"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeStage === "artifacts"
                   ? "bg-white text-blue-700 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
-              }`}
+                }`}
             >
               <FileSpreadsheet className="h-3.5 w-3.5" /> Artifacts (
               {artifacts.length})
@@ -270,22 +325,20 @@ export default function SessionWorkspacePage({
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => setLayoutMode("split")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                layoutMode === "split"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${layoutMode === "split"
                   ? "bg-white text-blue-700 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
-              }`}
+                }`}
               title="Side-by-side Source & Artifact Split Workbench"
             >
               <Columns className="h-3.5 w-3.5" /> Split
             </button>
             <button
               onClick={() => setLayoutMode("tabs")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                layoutMode === "tabs"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${layoutMode === "tabs"
                   ? "bg-white text-blue-700 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
-              }`}
+                }`}
               title="Tabbed Full Screen View"
             >
               <Maximize2 className="h-3.5 w-3.5" /> Tabs
@@ -307,8 +360,8 @@ export default function SessionWorkspacePage({
                     Source Grounding &amp; CCO
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200 truncate max-w-[180px]">
-                  {primaryDocument}
+                <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
+                  Incident_Report.pdf
                 </span>
               </div>
 
@@ -332,29 +385,13 @@ export default function SessionWorkspacePage({
               {/* Claims Traceability */}
               <div className="space-y-2.5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Traceable Claims &amp; Facts
+                  Traceable Claims & Facts
                 </div>
                 {[
-                  {
-                    claim: "14 payment gateway systems isolated",
-                    confidence: "99%",
-                    page: "Page 2",
-                  },
-                  {
-                    claim: "Threat actor exploited CVE-2024-3094",
-                    confidence: "98%",
-                    page: "Page 2",
-                  },
-                  {
-                    claim: "Remediation capped at $2.5 million",
-                    confidence: "99%",
-                    page: "Page 4",
-                  },
-                  {
-                    claim: "0 unencrypted PII records exfiltrated",
-                    confidence: "100%",
-                    page: "Page 5",
-                  },
+                  { claim: "14 payment gateway systems isolated", confidence: "99%", page: "Page 2" },
+                  { claim: "Threat actor exploited CVE-2024-3094", confidence: "98%", page: "Page 2" },
+                  { claim: "Remediation capped at $2.5 million", confidence: "99%", page: "Page 4" },
+                  { claim: "0 unencrypted PII records exfiltrated", confidence: "100%", page: "Page 5" },
                 ].map((item, idx) => (
                   <div
                     key={idx}
@@ -362,14 +399,10 @@ export default function SessionWorkspacePage({
                   >
                     <div className="flex items-center gap-2.5">
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                      <span className="font-semibold text-slate-800 leading-snug">
-                        {item.claim}
-                      </span>
+                      <span className="font-semibold text-slate-800 leading-snug">{item.claim}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {item.page}
-                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">{item.page}</span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {item.confidence}
                       </span>
@@ -384,11 +417,7 @@ export default function SessionWorkspacePage({
                   Raw Ingested Excerpt
                 </div>
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-[11px] text-slate-600 leading-relaxed max-h-48 overflow-y-auto">
-                  &ldquo;On August 14, 2026 at 00:15 UTC, automated anomaly
-                  detection systems triggered a high-severity alert. 14
-                  production payment gateway systems were immediately
-                  quarantined... Kernel patch KB-9912 was initiated to mitigate
-                  CVE-2024-3094.&rdquo;
+                  &ldquo;On August 14, 2026 at 00:15 UTC, automated anomaly detection systems triggered a high-severity alert. 14 production payment gateway systems were immediately quarantined... Kernel patch KB-9912 was initiated to mitigate CVE-2024-3094.&rdquo;
                 </div>
               </div>
             </div>

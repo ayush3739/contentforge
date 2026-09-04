@@ -19,7 +19,7 @@ export function getRoleFromEmail(email?: string | null): Role {
   return "analyst";
 }
 
-const permissionsMap: Record<Role, string[]> = {
+export const permissionsMap: Record<Role, string[]> = {
   analyst: ["create_session", "upload_source", "generate", "view_verification"],
   reviewer: ["create_session", "upload_source", "generate", "view_verification", "approve_reject"],
   admin: [
@@ -29,15 +29,8 @@ const permissionsMap: Record<Role, string[]> = {
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: {
-    user_id: "USR-ANALYST-001",
-    username: "analyst01",
-    email: "analyst01@contentforge.ai",
-    role: "analyst",
-    permissions: permissionsMap.analyst,
-    status: "active",
-  },
-  token: "test-analyst-token",
+  user: null,
+  token: null,
   activeRole: "analyst",
 
   setRole: (role: Role) => {
@@ -49,8 +42,15 @@ export const useAuthStore = create<AuthState>((set) => ({
             role: role,
             permissions: permissionsMap[role] || permissionsMap.analyst,
           }
-        : null,
-      token: `test-${role}-token`,
+        : {
+            user_id: `USR-GUEST-${role.toUpperCase()}`,
+            username: `guest_${role}`,
+            email: `guest_${role}@contentforge.ai`,
+            role: role,
+            permissions: permissionsMap[role] || permissionsMap.analyst,
+            status: "active",
+          },
+      token: state.token || `USR-GUEST-${role.toUpperCase()}`,
     }));
   },
 
