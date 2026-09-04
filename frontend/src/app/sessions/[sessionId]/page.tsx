@@ -82,6 +82,10 @@ export default function SessionWorkspacePage({
     }
   }, [sessionId, tabParam, viewParam, setCurrentSession]);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   // Dynamic CCO claims from session store or current session
   const claims = currentCCO?.claims || [];
   const sourceDocName = (currentSession as any)?.documents?.[0]?.name || "Source Document";
@@ -200,39 +204,15 @@ export default function SessionWorkspacePage({
 
     return (
       <div className="space-y-4">
-        {/* Top Artifact Switcher Strip (if multiple artifacts exist) */}
-        {artifacts.length > 1 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-            <span className="text-[11px] font-bold uppercase text-slate-400 dark:text-slate-500 pl-2 shrink-0">
-              Artifacts:
-            </span>
-            {artifacts.map((art, idx) => {
-              const isSelected = idx === selectedArtifactIdx;
-              const type = art.type || "artifact";
-              return (
-                <button
-                  key={art.artifact_id || idx}
-                  onClick={() => setSelectedArtifactIdx(idx)}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer",
-                    isSelected
-                      ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent"
-                  )}
-                >
-                  {getArtifactIcon(type)}
-                  <span className="capitalize">{type.replace("_", " ")}</span>
-                  <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
-                    v{art.version || 1}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Active Artifact Viewer with unified multi-artifact support */}
+        {activeArtifact && (
+          <ArtifactViewer
+            artifact={activeArtifact}
+            allArtifacts={artifacts}
+            selectedArtifactIdx={selectedArtifactIdx}
+            onSelectArtifactIdx={setSelectedArtifactIdx}
+          />
         )}
-
-        {/* Active Artifact Viewer */}
-        {activeArtifact && <ArtifactViewer artifact={activeArtifact} />}
       </div>
     );
   };
@@ -432,27 +412,11 @@ export default function SessionWorkspacePage({
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6">
-                  <TransformationPlanner />
+                  <TransformationPlanner sessionId={sessionId} />
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-xs flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-100 dark:ring-emerald-900" />
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                      Generated Intelligence Artifacts ({artifacts.length})
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setActiveStage("plan")}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 text-xs font-bold transition-all cursor-pointer"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" /> Plan New Output
-                  </button>
-                </div>
-                {renderArtifactsSection()}
-              </div>
+              renderArtifactsSection()
             )}
           </div>
         </div>
@@ -541,7 +505,7 @@ export default function SessionWorkspacePage({
             {activeTab === "source" && <SourceViewer />}
             {activeTab === "cco" && <CCOViewer />}
             {activeTab === "evidence" && <EvidenceViewer />}
-            {activeTab === "transform" && <TransformationPlanner />}
+            {activeTab === "transform" && <TransformationPlanner sessionId={sessionId} />}
             {activeTab === "provenance" && <ProvenanceTimeline />}
           </div>
         </div>

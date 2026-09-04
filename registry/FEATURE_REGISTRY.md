@@ -27,6 +27,8 @@
 | `FEAT-PIPE-001`| End-to-End Artifact Pipeline: Real Polling, SSE Upload UX, Lazy Sessions & Verified Viewer | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-AUTH-003`| User Identity & Real Email Synchronization with Neon DB Users Table | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-PIPE-002`| Live SSE Transformation Progress Streaming, Robust CCO Resolution & Error State Recovery | Fullstack | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-UI-004` | Document Preview Workspace & Artifact Experience Overhaul | Fullstack | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-AI-007` | Production-Ready AI Output Realism, Custom Instructions Propagation & Authentic Presentation/Social Formats | Fullstack (P1 / P2 / P3) | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
 | `FEAT-RN-001`| *Example: Executive Summary HTML Renderer*| P4 (Renderers)| `feature/renderer-exec`| 📋 Planned | - |
 
@@ -505,6 +507,91 @@
     (0 errors)
   - Submit any transformation from UI or run `test_transformation_flow.py`:
     Verify job progresses from `QUEUED` -> `PROCESSING` -> `GENERATING` -> `VERIFYING` -> `RENDERING` -> `COMPLETED` and streams over SSE.
+
+---
+
+### [FEAT-UI-004] Document Preview Workspace & Artifact Experience Overhaul
+- **Role / Owner:** Fullstack (P2 Frontend / P4 Renderers / P3 Backend)
+- **Date Added:** 2026-09-04
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  Overhauled ContentForge's artifact presentation into an authoritative, distraction-free document workspace:
+  1. **Print Briefing Isolation via CSS**: Added `@media print` rules to `globals.css` that hide sidebar, topbar, buttons, and app chrome, rendering only the `.printable-document-sheet` container on clean white A4 paper with proper page breaks and zero website chrome.
+  2. **Unified Preview Toolbar**: Consolidated 4 stacked header layers into a single compact toolbar in `ArtifactViewer.tsx` featuring format switcher pills, zoom controls (75%, 100%, Fit), dynamic download button (`.pptx`, `.docx`, `.png`, `.json`), reviewer actions overflow menu, provenance checksum badge, and fullscreen toggle.
+  3. **De-cluttered Session Workbench**: Removed redundant outer artifact strip and duplicate count banner from `sessions/[sessionId]/page.tsx`, passing multi-artifact collections directly to the unified toolbar.
+  4. **Infographic Data Visualizations & High-DPI PNG Export**: Replaced plain text metric boxes in `InfographicViewer.tsx` with animated SVG radial progress rings, horizontal comparative data bars, connected milestone chronology nodes, and 2x retina PNG export via `html-to-image`.
+  5. **Conditional Social Communication Configuration**: Built a slide-in configuration drawer in `TransformationPlanner.tsx` that appears dynamically when Social Communication is selected, allowing users to configure target platform, social tone, persona, and thread format. Expanded `SocialPostViewer.tsx` to simulate LinkedIn, X/Twitter, Instagram Carousels, and Executive Newsletters.
+  6. **Backend Storage-First Binary Downloads**: Updated `artifact_service.py` to expose `storage_key` and prioritize pre-rendered binaries directly from Object Storage with on-the-fly rendering fallback.
+- **Key Modules / Files Modified:**
+  - `frontend/src/app/globals.css` (Added print isolation styles)
+  - `frontend/src/components/artifacts/ArtifactViewer.tsx` (Unified preview toolbar, zoom, fullscreen, dynamic download)
+  - `frontend/src/app/sessions/[sessionId]/page.tsx` (De-cluttered layout, multi-artifact integration)
+  - `frontend/src/components/artifacts/ExecutiveSummaryViewer.tsx` (Printable document sheet, clean header)
+  - `frontend/src/components/artifacts/AdvisoryViewer.tsx` (Printable document sheet, clean header)
+  - `frontend/src/components/artifacts/InfographicViewer.tsx` (Full overhaul: SVG charts, radial rings, PNG export)
+  - `frontend/src/components/artifacts/SocialPostViewer.tsx` (Clean header, 4 platform previews)
+  - `frontend/src/components/transform/TransformationPlanner.tsx` (Conditional social drawer)
+  - `frontend/src/types/transformation.ts` (Added SocialConfig interface)
+  - `frontend/src/store/useTransformationStore.ts` (Added socialConfig state & actions)
+  - `backend/app/services/artifact_service.py` (Exposed storage_key, storage-first download)
+  - `backend/app/schemas/transformation.py` (Made cco_version_id optional in response)
+- **How to View & Verify:**
+  - Build check: `cd frontend && npm run build` (17/17 routes compiled, 0 errors)
+  - Backend tests: `cd backend && uv run pytest` (10/10 tests passed)
+  - Open `http://localhost:3000/sessions/SES-27067325` in browser.
+  - Observe unified preview toolbar at the top of the right pane with format switcher pills, zoom (75%/100%/Fit), download binary, and fullscreen expand.
+  - Test "Print Briefing": click print and verify only the clean white briefing document sheet appears in print preview.
+  - Switch to "Infographic" tab: verify radial SVG rings, comparative bars, milestone timeline, and click "Download Graphic (PNG)".
+  - Navigate to "Plan Outputs": select "Social Communication" to see the blue-tinted social configuration drawer slide in with platform, tone, persona, and format controls.
+
+---
+
+### [FEAT-AI-007] Production-Ready AI Output Realism, Custom Instructions Propagation & Authentic Presentation/Social Formats
+- **Role / Owner:** Fullstack (P1 AI Engineer / P2 Frontend / P3 Backend)
+- **Date Added:** 2026-09-04
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  Optimized the end-to-end transformation pipeline to generate highly detailed, production-ready, and realistic outputs that accurately mirror organizational public communications and executive presentations (as specified in PRD and P1/P4 contracts):
+  1. **Dynamic Parameter & Custom Instructions Propagation**: Fixed `orchestrator.py` which was previously ignoring user parameters and hardcoding defaults. It now queries `TransformationRequest` in the background task to inject the user's exact `audience`, `tone`, `language`, `detail_level`, `objective`, `style`, and `custom_instructions`.
+  2. **Grounded Source Text Resolution**: Updated `orchestrator.py` to reconstruct grounded document text from DB `SourceBlock` rows or synthesized CCO claims/overview rather than defaulting to generic sample text.
+  3. **Agentic Planner Custom Directives**: Updated `planner.py` to accept `custom_instructions` and `social_config`, injecting mandatory operator directives into the system prompt and generating targeted vector retrieval queries specifically addressing user focus areas. Added rich fallback plans for `social_post`, `infographic`, and `video_package`.
+  4. **Format-Specific Prompt Compilation**: Enhanced `compiler.py` with custom operator instruction blocks and high-impact format directives tailored for corporate executive slides, authentic social posts, and rich infographics.
+  5. **Rich Schema Expansions**:
+     - `social_post.py`: Added campaign `title`, platform targeting, and multi-tweet `thread` array for X/Twitter.
+     - `infographic.py`: Added structured `MetricItem` (labels, values, trends, colors, 0-100% radial progress values), `TimelineItem` (time, event, detail, status), and `ComparisonBar` (label, value, percent, color) directly feeding React SVG components.
+     - `presentation.py`: Added `visual_layout`, `metrics_highlight`, rich bullet points, and conversational `speaker_notes`.
+  6. **Interactive & Authentic Social Post Experience**: Updated `SocialPostViewer.tsx` to remove artificial internal grey boxes ("Verified Key Findings") from the simulated LinkedIn view, replacing them with authentic `🔹` bullet formatting directly in the copy. Added an inline "Edit Post" / "Preview Mode" live editor so users can refine copy and copy directly. Added a cryptographic CCO provenance footer.
+- **Key Modules / Files Modified:**
+  - `backend/app/jobs/orchestrator.py` (Parameter and custom instructions injection, source block resolution)
+  - `backend/app/ai/pipeline.py` (`custom_instructions` and `social_config` in `PipelineTransformRequest`)
+  - `backend/app/ai/planner/planner.py` (Agentic custom instruction prioritization & retrieval query generation)
+  - `backend/app/ai/prompts/compiler.py` (Operator instruction blocks & format-specific quality directives)
+  - `backend/app/ai/schemas/social_post.py` (Added `title`, `thread` breakdown)
+  - `backend/app/ai/schemas/infographic.py` (Added `metrics`, `timeline`, `comparison_bars`)
+  - `backend/app/ai/schemas/presentation.py` (Added `visual_layout`, `metrics_highlight`)
+  - `backend/app/ai/generation/generator.py` (Enriched fallback schemas)
+  - `frontend/src/components/artifacts/SocialPostViewer.tsx` (Inline editor, authentic bullet formatting, provenance badge)
+  - `backend/scripts/test_pipeline_e2e_evaluation.py` (End-to-end multi-format evaluation script)
+- **How to View & Verify:**
+  - Run automated backend test suite:
+    ```bash
+    cd backend && uv run pytest
+    ```
+    (18/18 tests passing)
+  - Run frontend production build:
+    ```bash
+    cd frontend && npm run build
+    ```
+    (17/17 routes compiled, 0 errors)
+  - Run end-to-end evaluation script:
+    ```bash
+    cd backend && uv run python scripts/test_pipeline_e2e_evaluation.py
+    ```
+    (Generates all 5 output formats, verifies grounding scores and schema compliance, and saves output to `scripts/evaluation_results.json`)
+  - Inspect generated output log in `backend/latest_run_output.json` to verify 7-slide presentation with speaker notes, LinkedIn post with natural bullet points, and 4-metric infographic with timeline milestones.
+
 
 <!-- 
 ================================================================================

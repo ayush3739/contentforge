@@ -18,8 +18,11 @@ from app.models.artifact import Artifact, VerificationResult
 from app.models.transformation import TransformationRequest
 from app.storage import get_storage_provider
 from app.models.document import Document
+from app.models.session import Session
 from app.models.cco import CCOVersion
 from app.models.chunk import SourceBlock, Chunk
+from app.renderers.docx_renderer import render_document
+from app.renderers.pptx_renderer import render_presentation
 from app.ai.ingestion.parser import parse_document
 from app.ai.extraction.deterministic import extract_deterministic_data
 from app.ai.extraction.semantic import extract_semantic_data
@@ -27,6 +30,7 @@ from app.ai.cco.builder import build_cco
 from app.ai.chunking.chunker import chunk_blocks
 from app.ai.embeddings import embed_batch
 from app.core.database import new_db_session
+import json
 logger = logging.getLogger("app.jobs.orchestrator")
 
 
@@ -63,16 +67,58 @@ class TransformationJobOrchestrator:
 
             from app.ai.pipeline import PipelineTransformRequest, run_transformation_pipeline
 
-            # Attempt to resolve source text from CCO if not explicitly provided
+            # Fetch the actual user parameters from the database record
+            trans_row = db.query(TransformationRequest).filter(TransformationRequest.id == transformation_id).first() if db else None
+            audience = trans_row.audience if trans_row and trans_row.audience else "senior leadership"
+            tone = trans_row.tone if trans_row and trans_row.tone else "professional"
+            detail_level = trans_row.detail_level if trans_row and trans_row.detail_level else "balanced"
+            language = trans_row.language if trans_row and trans_row.language else "en"
+            objective = trans_row.objective if trans_row and trans_row.objective else "decision briefing"
+            style = trans_row.style if trans_row and trans_row.style else "standard"
+            custom_instructions = trans_row.custom_instructions if trans_row else None
+
+            # Attempt to resolve source text from CCO or SourceBlocks if not explicitly provided
             resolved_text = source_text
+            doc_filename = "source_document.txt"
             if not resolved_text and db:
                 try:
                     cco_row = db.query(CCOVersion).filter(CCOVersion.id == cco_version_id).first()
-                    if cco_row and cco_row.cco_json:
-                        import json
-                        resolved_text = json.dumps(cco_row.cco_json, indent=2)
-                except Exception:
-                    pass
+                    if cco_row:
+                        if cco_row.document_id:
+                            # 1. Try to read source blocks for full grounded text
+                            blocks = (
+                                db.query(SourceBlock)
+                                .filter(SourceBlock.document_id == cco_row.document_id)
+                                .order_by(SourceBlock.position_index.asc())
+                                .all()
+                            )
+                            if blocks:
+                                resolved_text = "\n\n".join(b.content for b in blocks if b.content)
+                            
+                            # Also resolve document filename
+                            doc = db.query(Document).filter(Document.id == cco_row.document_id).first()
+                            if doc and doc.name:
+                                doc_filename = doc.name
+
+                        # 2. If blocks not found, synthesize clean readable markdown from CCO JSON
+                        if not resolved_text and cco_row.cco_json:
+                            cco_dict = cco_row.cco_json
+                            title = cco_dict.get("metadata", {}).get("title") or cco_dict.get("title", "")
+                            overview = cco_dict.get("metadata", {}).get("overview") or cco_dict.get("summary", "")
+                            claims = [c.get("text", "") for c in cco_dict.get("claims", []) if c.get("text")]
+                            parts = []
+                            if title:
+                                parts.append(f"# {title}")
+                            if overview:
+                                parts.append(overview)
+                            if claims:
+                                parts.append("Key Claims & Findings:\n" + "\n".join(f"- {c}" for c in claims))
+                            if parts:
+                                resolved_text = "\n\n".join(parts)
+                            else:
+                                resolved_text = json.dumps(cco_dict, indent=2)
+                except Exception as e:
+                    logger.warning(f"Error resolving source text from DB: {e}")
 
             sample_content = resolved_text or (
                 "# ContentForge Sample Briefing\n"
@@ -82,12 +128,17 @@ class TransformationJobOrchestrator:
             )
 
             req = PipelineTransformRequest(
+                session_id=session_id,
                 content=sample_content,
-                filename="source_document.txt",
+                filename=doc_filename,
                 output_types=output_types,
-                audience="senior leadership",
-                tone="professional",
-                detail_level="concise",
+                audience=audience,
+                tone=tone,
+                language=language,
+                detail_level=detail_level,
+                objective=objective,
+                style=style,
+                custom_instructions=custom_instructions,
             )
 
             # Pass db=None: pipeline uses AsyncSession internally which is incompatible
@@ -100,24 +151,77 @@ class TransformationJobOrchestrator:
             # 4. Update state: RENDERING (Persist binary files & metadata)
             self._update_status_with_db(db, transformation_id, "RENDERING", 85, "Rendering binary presentations & persistent artifacts.")
 
+            # Ensure cco_version_id exists in cco_versions table to satisfy DB foreign key constraint
+            if db:
+                db_cco = db.query(CCOVersion).filter(CCOVersion.id == cco_version_id).first()
+                if not db_cco:
+                    db_cco = db.query(CCOVersion).filter(CCOVersion.status == "active").order_by(CCOVersion.created_at.desc()).first()
+                    if not db_cco:
+                        db_cco = db.query(CCOVersion).order_by(CCOVersion.created_at.desc()).first()
+                    
+                    if not db_cco:
+                        # Persist the CCO built during this pipeline run into cco_versions table
+                        db_doc = db.query(Document).order_by(Document.created_at.desc()).first()
+                        if not db_doc:
+                            db_sess = db.query(Session).order_by(Session.created_at.desc()).first()
+                            if not db_sess:
+                                db_sess = Session(id=f"SES-{uuid.uuid4().hex[:8].upper()}", name="Default Workspace", status="active")
+                                db.add(db_sess)
+                                db.flush()
+                            db_doc = Document(id=f"DOC-{uuid.uuid4().hex[:8].upper()}", session_id=db_sess.id, name="source_document.txt", mime_type="text/plain", status="ready")
+                            db.add(db_doc)
+                            db.flush()
+
+                        cco_dict = ai_response.cco.model_dump() if hasattr(ai_response.cco, "model_dump") else (ai_response.cco or {})
+                        db_cco = CCOVersion(
+                            id=f"CCO-{uuid.uuid4().hex[:8].upper()}",
+                            document_id=db_doc.id,
+                            version_number=1,
+                            cco_json=cco_dict,
+                            status="active",
+                        )
+                        db.add(db_cco)
+                        db.flush()
+
+                    cco_version_id = db_cco.id
+
             created_artifacts = []
 
             for art_item in ai_response.artifacts:
                 art_id = f"ART-{uuid.uuid4().hex[:8].upper()}"
                 art_type = art_item.artifact_type
+                content_json = art_item.content or {}
                 
-                # Render content binary (PPTX or PDF or Markdown)
-                file_ext = "pptx" if art_type == "presentation" else "pdf"
+                # Render genuine binary files (PPTX, DOCX, or JSON)
+                if art_type == "presentation":
+                    try:
+                        binary_content = render_presentation(content_json)
+                        file_ext = "pptx"
+                        content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                    except Exception as e:
+                        logger.warning(f"PPTX render fallback: {e}")
+                        binary_content = json.dumps(content_json, indent=2).encode("utf-8")
+                        file_ext = "json"
+                        content_type = "application/json"
+                elif art_type in ["executive_summary", "advisory"]:
+                    try:
+                        binary_content = render_document(content_json)
+                        file_ext = "docx"
+                        content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    except Exception as e:
+                        logger.warning(f"DOCX render fallback: {e}")
+                        binary_content = json.dumps(content_json, indent=2).encode("utf-8")
+                        file_ext = "json"
+                        content_type = "application/json"
+                else:
+                    binary_content = json.dumps(content_json, indent=2).encode("utf-8")
+                    file_ext = "json"
+                    content_type = "application/json"
+
                 filename = f"{art_type}_{art_id[:6]}.{file_ext}"
                 storage_key = f"artifacts/{transformation_id}/{art_type}/v1/{filename}"
-                
-                binary_content = (
-                    f"ContentForge Rendered Binary Artifact\nType: {art_type}\nID: {art_id}\n"
-                    f"Title: {art_item.content.get('title', 'Generated Artifact')}"
-                ).encode("utf-8")
-
                 checksum = hashlib.sha256(binary_content).hexdigest()
-                await self.storage.put_object(storage_key, binary_content, content_type="application/octet-stream")
+                await self.storage.put_object(storage_key, binary_content, content_type=content_type)
 
                 # Store DB record if DB is available
                 if db:

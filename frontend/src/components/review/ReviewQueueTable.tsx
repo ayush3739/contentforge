@@ -18,7 +18,7 @@ export default function ReviewQueueTable() {
         const sessions = await fetchSessions();
         if (Array.isArray(sessions) && sessions.length > 0) {
           const items: any[] = [];
-          sessions.forEach((s) => {
+          sessions.forEach((s: any) => {
             if (s.transformation_requests && s.transformation_requests.length > 0) {
               s.transformation_requests.forEach((t: any) => {
                 items.push({

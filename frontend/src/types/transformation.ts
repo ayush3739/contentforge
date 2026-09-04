@@ -6,6 +6,13 @@ export type OutputType =
   | "video_package"
   | "social_post";
 
+export interface SocialConfig {
+  platform: 'linkedin' | 'twitter' | 'instagram' | 'newsletter';
+  tone: 'thought_leadership' | 'punchy_viral' | 'official_pr' | 'technical_breakdown';
+  persona: 'c_suite' | 'developers' | 'general_public';
+  format: 'single_post' | 'thread';
+}
+
 export interface TransformationParams {
   audience: string;
   tone: string;
@@ -13,6 +20,8 @@ export interface TransformationParams {
   detail_level: string;
   objective: string;
   style: string;
+  custom_instructions?: string;
+  social_config?: SocialConfig;
 }
 
 export interface TransformationCreatePayload extends TransformationParams {

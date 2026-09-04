@@ -57,38 +57,36 @@ export default function AdvisoryViewer({ content }: AdvisoryViewerProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 space-y-8 max-w-5xl mx-auto">
-      {/* Official Government Advisory Banner */}
-      <div className="border-b border-slate-200 dark:border-slate-800 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="printable-document-sheet bg-white text-slate-900 rounded-2xl border border-slate-200 shadow-md p-8 sm:p-10 space-y-8 max-w-4xl mx-auto">
+      {/* Official Government Advisory Header */}
+      <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span
               className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider font-mono border ${
                 severity === "CRITICAL"
-                  ? "bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
+                  ? "bg-rose-50 text-rose-700 border-rose-200"
                   : severity === "HIGH"
-                  ? "bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-                  : "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                  : "bg-blue-50 text-blue-700 border-blue-200"
               }`}
             >
               Severity: {severity}
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">
-              CERT TLP: AMBER
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono flex items-center gap-1">
-              <ShieldCheck className="h-3 w-3" /> Grounded In Source CCO
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200 font-mono">
+              TLP: AMBER
             </span>
           </div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{title}</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">Advisory ID: ADV-2026-0814 • Target: Enterprise Incident Teams</p>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h1>
+          <p className="text-xs text-slate-500 mt-1 font-mono">Advisory ID: ADV-2026-0814 • Target: Enterprise Incident & SecOps Teams</p>
         </div>
 
         <button
           onClick={() => window.print()}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors shadow-xs w-fit"
+          className="no-print flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-xs w-fit cursor-pointer"
+          title="Print or export advisory"
         >
-          <Printer className="h-4 w-4 text-slate-500 dark:text-slate-400" /> Export PDF Advisory
+          <Printer className="h-4 w-4 text-slate-500" /> Export PDF Advisory
         </button>
       </div>
 

@@ -20,6 +20,7 @@ class TransformationRequest(Base, UUIDMixin, TimestampMixin):
     detail_level: Mapped[str] = mapped_column(String(50), default="balanced", nullable=False)  # concise, balanced, detailed
     objective: Mapped[str] = mapped_column(String(255), default="inform", nullable=False)
     style: Mapped[str] = mapped_column(String(100), default="standard", nullable=False)
+    custom_instructions: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="queued", nullable=False)  # queued, in_progress, completed, failed
 
     session: Mapped["Session"] = relationship("Session", back_populates="transformation_requests")

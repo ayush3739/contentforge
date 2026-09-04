@@ -42,6 +42,8 @@ class PipelineTransformRequest(BaseModel):
     detail_level: str = Field(default="balanced", description="concise, balanced, or detailed")
     objective: str = Field(default="decision briefing", description="Primary goal")
     style: str = Field(default="standard", description="Stylistic formatting")
+    custom_instructions: Optional[str] = Field(default=None, description="Custom prompt or focus instructions from user")
+    social_config: Optional[dict[str, Any]] = Field(default=None, description="Social post platform configurations")
     llm_provider: Optional[str] = Field(default=None, description="gemini, groq, or openai")
 
 
@@ -182,6 +184,7 @@ async def run_transformation_pipeline_stream(
                     detail_level=request.detail_level,
                     objective=request.objective,
                     style=request.style,
+                    custom_instructions=request.custom_instructions,
                     status="completed",
                 )
                 db.add(trans_record)
@@ -216,6 +219,8 @@ async def run_transformation_pipeline_stream(
                 detail_level=request.detail_level,
                 objective=request.objective,
                 style=request.style,
+                custom_instructions=request.custom_instructions,
+                social_config=request.social_config if art_type == "social_post" else None,
                 cco=cco,
                 provider_name=request.llm_provider,
             )
