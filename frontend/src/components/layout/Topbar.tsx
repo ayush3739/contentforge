@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { getRoleFromEmail, permissionsMap, useAuthStore } from "@/store/useAuthStore";
+import { getRoleFromClerk, permissionsMap, useAuthStore } from "@/store/useAuthStore";
 import { Role } from "@/types/auth";
 import { UserButton, useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -35,7 +35,7 @@ export default function Topbar() {
         clerkUser.username ||
         clerkUser.fullName ||
         (email ? email.split("@")[0] : "Operator");
-      const derivedRole = getRoleFromEmail(email);
+      const derivedRole = getRoleFromClerk(clerkUser.publicMetadata?.role, email);
 
       const storeUser = useAuthStore.getState().user;
       if (!storeUser || storeUser.user_id !== clerkUser.id || storeUser.role !== derivedRole) {
@@ -78,20 +78,21 @@ export default function Topbar() {
 
       {/* Right User Control Bar */}
       <div className="flex items-center gap-4">
-        {/* Role Pill - Auto-detected from Account Email */}
+        {/* Role Pill - Static Display (Auto-detected from Clerk DB Metadata) */}
         <div className="flex items-center gap-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/80 px-3 py-1 text-xs shadow-xs">
-          <UserCheck className={`h-3.5 w-3.5 ${activeRole === "admin" ? "text-purple-600 dark:text-purple-400" : "text-blue-600 dark:text-blue-400"}`} />
+          <UserCheck className={`h-3.5 w-3.5 ${activeRole === "admin" ? "text-purple-600 dark:text-purple-400" : activeRole === "reviewer" ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"}`} />
           <span className="text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">Role:</span>
-          <select
-            value={activeRole}
-            onChange={(e) => setRole(e.target.value as Role)}
-            className={`bg-transparent font-bold focus:outline-none cursor-pointer text-xs uppercase ${
-              activeRole === "admin" ? "text-purple-700 dark:text-purple-300" : "text-blue-700 dark:text-blue-300"
+          <span
+            className={`font-extrabold text-xs uppercase px-2 py-0.5 rounded-md tracking-wider ${
+              activeRole === "admin"
+                ? "bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                : activeRole === "reviewer"
+                ? "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                : "bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
             }`}
           >
-            <option value="analyst" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Analyst</option>
-            <option value="admin" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Admin</option>
-          </select>
+            {activeRole}
+          </span>
         </div>
 
         {/* Notifications */}
