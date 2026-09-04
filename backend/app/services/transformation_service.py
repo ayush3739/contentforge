@@ -26,24 +26,102 @@ class TransformationService:
         trans_id = f"TR-{uuid.uuid4().hex[:8].upper()}"
         cco_version_id = payload.cco_version_id
 
-        if not cco_version_id and payload.source_document_id:
-            if self.db:
-                try:
+        # 1. Resolve via source_document_id
+        if not cco_version_id and payload.source_document_id and self.db:
+            try:
+                cco = (
+                    self.db.query(CCOVersion)
+                    .filter(CCOVersion.document_id == payload.source_document_id)
+                    .order_by(CCOVersion.version_number.desc())
+                    .first()
+                )
+                if cco:
+                    cco_version_id = cco.id
+            except Exception:
+                pass
+
+        # 2. Resolve via session_id
+        if not cco_version_id and payload.session_id and self.db:
+            try:
+                docs = (
+                    self.db.query(Document)
+                    .filter(Document.session_id == payload.session_id)
+                    .order_by(Document.created_at.desc())
+                    .all()
+                )
+                for d in docs:
                     cco = (
                         self.db.query(CCOVersion)
-                        .filter(CCOVersion.document_id == payload.source_document_id)
+                        .filter(CCOVersion.document_id == d.id)
                         .order_by(CCOVersion.version_number.desc())
                         .first()
                     )
                     if cco:
                         cco_version_id = cco.id
-                except Exception:
-                    pass
-            if not cco_version_id:
-                cco_version_id = f"CCO-{payload.source_document_id}"
+                        break
+            except Exception:
+                pass
+
+        # 3. Fallback: use any existing active CCO in database
+        if not cco_version_id and self.db:
+            try:
+                any_cco = (
+                    self.db.query(CCOVersion)
+                    .filter(CCOVersion.status == "active")
+                    .order_by(CCOVersion.created_at.desc())
+                    .first()
+                )
+                if not any_cco:
+                    any_cco = self.db.query(CCOVersion).order_by(CCOVersion.created_at.desc()).first()
+                if any_cco:
+                    cco_version_id = any_cco.id
+            except Exception:
+                pass
+
+        # 4. If database has zero CCOs, create a valid fallback document & CCO to satisfy FK constraints
+        if not cco_version_id and self.db:
+            try:
+                fallback_doc = (
+                    self.db.query(Document)
+                    .filter(Document.session_id == payload.session_id)
+                    .first()
+                )
+                if not fallback_doc:
+                    fallback_doc = Document(
+                        id=f"DOC-{uuid.uuid4().hex[:8].upper()}",
+                        session_id=payload.session_id,
+                        name="session_briefing.txt",
+                        mime_type="text/plain",
+                        status="ready",
+                        created_by=user_id,
+                    )
+                    self.db.add(fallback_doc)
+                    self.db.flush()
+
+                fallback_cco_id = f"CCO-{uuid.uuid4().hex[:8].upper()}"
+                fallback_cco = CCOVersion(
+                    id=fallback_cco_id,
+                    document_id=fallback_doc.id,
+                    version_number=1,
+                    cco_json={
+                        "title": "Session Briefing CCO",
+                        "summary": "Synthesized source briefing for multi-output transformation.",
+                        "claims": [],
+                        "entities": [],
+                        "metrics": [],
+                    },
+                    status="active",
+                    created_by=user_id,
+                )
+                self.db.add(fallback_cco)
+                self.db.flush()
+                cco_version_id = fallback_cco_id
+            except Exception:
+                if self.db:
+                    self.db.rollback()
 
         if not cco_version_id:
-            cco_version_id = f"CCO-DEFAULT-{uuid.uuid4().hex[:4]}"
+            cco_version_id = f"CCO-INMEMORY-{uuid.uuid4().hex[:4]}"
 
         if self.db:
             try:
@@ -115,6 +193,37 @@ class TransformationService:
                         }
                         for a in db_trans.artifacts
                     ]
+                    mem_rec = self._in_memory_transformations.get(trans_id, {})
+                    progress = mem_rec.get("progress_percentage")
+                    if progress is None:
+                        if db_trans.status == "COMPLETED":
+                            progress = 100
+                        elif db_trans.status == "FAILED":
+                            progress = 0
+                        elif db_trans.status == "QUEUED":
+                            progress = 10
+                        elif db_trans.status == "PROCESSING":
+                            progress = 25
+                        elif db_trans.status == "GENERATING":
+                            progress = 55
+                        elif db_trans.status == "VERIFYING":
+                            progress = 75
+                        elif db_trans.status == "RENDERING":
+                            progress = 90
+                        else:
+                            progress = 50
+
+                    msg = mem_rec.get("message")
+                    if not msg:
+                        if db_trans.status == "COMPLETED":
+                            msg = "Transformation completed successfully."
+                        elif db_trans.status == "FAILED":
+                            msg = "Transformation pipeline failed."
+                        elif db_trans.status == "QUEUED":
+                            msg = "Transformation queued for processing."
+                        else:
+                            msg = "Processing transformation..."
+
                     return {
                         "transformation_id": db_trans.id,
                         "session_id": db_trans.session_id,
@@ -128,8 +237,9 @@ class TransformationService:
                         "objective": db_trans.objective,
                         "style": db_trans.style,
                         "status": db_trans.status,
-                        "progress_percentage": 100 if db_trans.status == "COMPLETED" else 50,
-                        "artifacts": artifacts_list,
+                        "progress_percentage": progress,
+                        "message": msg,
+                        "artifacts": artifacts_list or mem_rec.get("artifacts", []),
                         "created_at": db_trans.created_at,
                     }
             except Exception:

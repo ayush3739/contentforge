@@ -41,6 +41,7 @@ class TransformationResponse(BaseModel):
 
 class TransformationStatusResponse(BaseModel):
     transformation_id: str
+    session_id: Optional[str] = None
     status: str  # QUEUED, PROCESSING, GENERATING, VERIFYING, RENDERING, COMPLETED, FAILED, REVIEW_REQUIRED
     progress_percentage: int = 0
     message: Optional[str] = None
