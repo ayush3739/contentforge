@@ -1,2 +1,0 @@
-# Security Advisory
-System breach detected on August 14, 2026.
