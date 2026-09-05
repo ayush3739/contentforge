@@ -3,19 +3,23 @@ ContentForge AI — Async Transformation Job Orchestrator
 
 Coordinates transformation jobs adhering to Section 14 & 15 of Specification:
 Executes AI pipeline execution in background threads/tasks, updates status transitions:
-QUEUED -> PROCESSING -> GENERATING -> VERIFYING -> RENDERING -> COMPLETED / REVIEW_REQUIRED / FAILED
+QUEUED -> PLANNING -> GENERATING -> VERIFYING -> RENDERING -> COMPLETED / FAILED
 """
 
 import asyncio
+from datetime import datetime, timezone
 import hashlib
 import logging
 import uuid
 from typing import Optional
 from sqlalchemy.orm import Session as DBSession
 
-from app.audit.logger import record_audit_event
+from app.audit.logger import record_audit_event, record_security_event
+from app.core.redis import publish_event
 from app.models.artifact import Artifact, VerificationResult
-from app.models.transformation import TransformationRequest
+from app.models.transformation import TransformationRequest, Job
+from app.schemas.enums import ArtifactStatus, JobStatus, TransformationStatus, VerificationStatus
+from app.renderers.template_registry import ArtifactTemplateConfig
 from app.storage import get_storage_provider
 from app.models.document import Document
 from app.models.session import Session
@@ -23,6 +27,7 @@ from app.models.cco import CCOVersion
 from app.models.chunk import SourceBlock, Chunk
 from app.renderers.docx_renderer import render_document
 from app.renderers.pptx_renderer import render_presentation
+from app.renderers.infographic_renderer import render_infographic_svg
 from app.ai.ingestion.parser import parse_document
 from app.ai.extraction.deterministic import extract_deterministic_data
 from app.ai.extraction.semantic import extract_semantic_data
@@ -58,8 +63,8 @@ class TransformationJobOrchestrator:
         # closed by FastAPI before asyncio.create_task() runs.
         db = new_db_session()
         try:
-            # 1. Update state: PROCESSING
-            self._update_status_with_db(db, transformation_id, "PROCESSING", 15, "Initializing AI execution context.")
+            # 1. Update state: PLANNING
+            self._update_status_with_db(db, transformation_id, "PLANNING", 15, "Initializing AI execution context.")
 
             # 2. Update state: GENERATING
             self._update_status_with_db(db, transformation_id, "GENERATING", 35, "Generating intelligence artifacts with P1 Engine.")
@@ -89,11 +94,11 @@ class TransformationJobOrchestrator:
                             blocks = (
                                 db.query(SourceBlock)
                                 .filter(SourceBlock.document_id == cco_row.document_id)
-                                .order_by(SourceBlock.position_index.asc())
+                                .order_by(SourceBlock.position.asc())
                                 .all()
                             )
                             if blocks:
-                                resolved_text = "\n\n".join(b.content for b in blocks if b.content)
+                                resolved_text = "\n\n".join(b.text for b in blocks if getattr(b, "text", None))
                             
                             # Also resolve document filename
                             doc = db.query(Document).filter(Document.id == cco_row.document_id).first()
@@ -121,10 +126,8 @@ class TransformationJobOrchestrator:
                     logger.warning(f"Error resolving source text from DB: {e}")
 
             sample_content = resolved_text or (
-                "# ContentForge Sample Briefing\n"
-                "Date: 2026-08-14\n"
-                "Target: Infrastructure Security Review\n"
-                "Summary: Executed vulnerability scan across 14 server nodes. 100% mitigated."
+                f"# {doc_filename.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ').title()}\n"
+                "Summary: Executive briefing and verified factual analysis derived from document source."
             )
 
             req = PipelineTransformRequest(
@@ -155,30 +158,26 @@ class TransformationJobOrchestrator:
             if db:
                 db_cco = db.query(CCOVersion).filter(CCOVersion.id == cco_version_id).first()
                 if not db_cco:
-                    db_cco = db.query(CCOVersion).filter(CCOVersion.status == "active").order_by(CCOVersion.created_at.desc()).first()
+                    # Look strictly in this session's documents
+                    session_doc = db.query(Document).filter(Document.session_id == session_id).order_by(Document.created_at.desc()).first()
+                    if session_doc:
+                        db_cco = db.query(CCOVersion).filter(CCOVersion.document_id == session_doc.id).order_by(CCOVersion.version_number.desc()).first()
+
                     if not db_cco:
-                        db_cco = db.query(CCOVersion).order_by(CCOVersion.created_at.desc()).first()
-                    
-                    if not db_cco:
-                        # Persist the CCO built during this pipeline run into cco_versions table
-                        db_doc = db.query(Document).order_by(Document.created_at.desc()).first()
-                        if not db_doc:
-                            db_sess = db.query(Session).order_by(Session.created_at.desc()).first()
-                            if not db_sess:
-                                db_sess = Session(id=f"SES-{uuid.uuid4().hex[:8].upper()}", name="Default Workspace", status="active")
-                                db.add(db_sess)
-                                db.flush()
-                            db_doc = Document(id=f"DOC-{uuid.uuid4().hex[:8].upper()}", session_id=db_sess.id, name="source_document.txt", mime_type="text/plain", status="ready")
-                            db.add(db_doc)
+                        # Persist the CCO built during this pipeline run specifically for this session
+                        if not session_doc:
+                            session_doc = Document(id=f"DOC-{uuid.uuid4().hex[:8].upper()}", session_id=session_id, name=doc_filename, mime_type="text/plain", status="ready", created_by=user_id)
+                            db.add(session_doc)
                             db.flush()
 
                         cco_dict = ai_response.cco.model_dump() if hasattr(ai_response.cco, "model_dump") else (ai_response.cco or {})
                         db_cco = CCOVersion(
                             id=f"CCO-{uuid.uuid4().hex[:8].upper()}",
-                            document_id=db_doc.id,
+                            document_id=session_doc.id,
                             version_number=1,
                             cco_json=cco_dict,
                             status="active",
+                            created_by=user_id,
                         )
                         db.add(db_cco)
                         db.flush()
@@ -187,41 +186,88 @@ class TransformationJobOrchestrator:
 
             created_artifacts = []
 
+            # Resolve template configs from DB record or in-memory
+            tpl_configs_map = {}
+            if trans_row and hasattr(trans_row, "template_configs") and trans_row.template_configs:
+                tpl_configs_map = trans_row.template_configs
+            if not tpl_configs_map:
+                try:
+                    from app.services.transformation_service import TransformationService
+                    in_mem = TransformationService._in_memory_transformations.get(transformation_id, {})
+                    tpl_configs_map = in_mem.get("template_configs") or {}
+                except Exception:
+                    pass
+
             for art_item in ai_response.artifacts:
                 art_id = f"ART-{uuid.uuid4().hex[:8].upper()}"
                 art_type = art_item.artifact_type
                 content_json = art_item.content or {}
-                
-                # Render genuine binary files (PPTX, DOCX, or JSON)
-                if art_type == "presentation":
-                    try:
-                        binary_content = render_presentation(content_json)
-                        file_ext = "pptx"
-                        content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                    except Exception as e:
-                        logger.warning(f"PPTX render fallback: {e}")
-                        binary_content = json.dumps(content_json, indent=2).encode("utf-8")
-                        file_ext = "json"
-                        content_type = "application/json"
-                elif art_type in ["executive_summary", "advisory"]:
-                    try:
-                        binary_content = render_document(content_json)
-                        file_ext = "docx"
-                        content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    except Exception as e:
-                        logger.warning(f"DOCX render fallback: {e}")
-                        binary_content = json.dumps(content_json, indent=2).encode("utf-8")
-                        file_ext = "json"
-                        content_type = "application/json"
+
+                # Extract template parameters if configured with resilient defaults
+                raw_cfg = tpl_configs_map.get(art_type) or {}
+                if isinstance(raw_cfg, dict):
+                    t_id = raw_cfg.get("template_id") or content_json.get("template_id") or ""
+                    cfg_dict = {**raw_cfg, "artifact_type": art_type, "template_id": t_id}
                 else:
-                    binary_content = json.dumps(content_json, indent=2).encode("utf-8")
-                    file_ext = "json"
-                    content_type = "application/json"
+                    cfg_dict = {"artifact_type": art_type, "template_id": content_json.get("template_id") or ""}
+
+                try:
+                    cfg = ArtifactTemplateConfig.model_validate(cfg_dict)
+                except Exception as cfg_err:
+                    from app.renderers.template_registry import get_default_template_id
+                    logger.warning(f"Template config validation fallback for {art_type}: {cfg_err}")
+                    cfg = ArtifactTemplateConfig(artifact_type=art_type, template_id=get_default_template_id(art_type))
+
+                template_id = cfg.template_id
+                theme_name = cfg.brand_theme
+                classification = cfg.classification_banner
+                # Persist the exact controlled render contract alongside structured content.
+                content_json = {**content_json, "template_id": template_id, "template_config": cfg.model_dump()}
+
+                try:
+                    if art_type == "presentation":
+                        binary_content = render_presentation(content_json, template_id=template_id, theme_name=theme_name,
+                            classification=classification, include_evidence_refs=cfg.include_evidence_refs,
+                            include_verification_footer=cfg.include_verification_footer)
+                        file_ext, content_type = "pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                    elif art_type in ["executive_summary", "advisory"]:
+                        binary_content = render_document(content_json, template_id=template_id, theme_name=theme_name,
+                            classification=classification, include_evidence_refs=cfg.include_evidence_refs,
+                            include_verification_footer=cfg.include_verification_footer)
+                        file_ext, content_type = "docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    elif art_type == "infographic":
+                        binary_content = render_infographic_svg(content_json, template_id=template_id, theme_name=theme_name,
+                            classification=classification, include_evidence_refs=cfg.include_evidence_refs,
+                            include_verification_footer=cfg.include_verification_footer)
+                        file_ext, content_type = "svg", "image/svg+xml"
+                    elif art_type in ["video_package", "social_post"]:
+                        binary_content = json.dumps(content_json, indent=2, ensure_ascii=False).encode("utf-8")
+                        file_ext, content_type = "json", "application/json"
+                    else:
+                        binary_content = json.dumps(content_json, indent=2, ensure_ascii=False).encode("utf-8")
+                        file_ext, content_type = "json", "application/json"
+                except Exception as render_error:
+                    logger.error("Controlled render failed for %s: %s", art_type, render_error)
+                    if db:
+                        db.add(Artifact(id=art_id, transformation_request_id=transformation_id, cco_version_id=cco_version_id,
+                            type=art_type, status=ArtifactStatus.FAILED, version=1, content_json=content_json,
+                            template_config=cfg.model_dump(), render_error=str(render_error)))
+                        db.add(VerificationResult(id=f"VER-{uuid.uuid4().hex[:8].upper()}", artifact_id=art_id,
+                            status=VerificationStatus.FAILED, grounding_score=0.0, consistency_score=0.0,
+                            unsupported_claim_count=1, issues_json=[{"category": "render_failed", "severity": "CRITICAL", "description": str(render_error), "suggested_fix": "Correct the structured content or template configuration and revise."}]))
+                    created_artifacts.append({"artifact_id": art_id, "type": art_type, "version": 1, "status": "FAILED", "template_id": template_id, "render_error": str(render_error)})
+                    continue
 
                 filename = f"{art_type}_{art_id[:6]}.{file_ext}"
                 storage_key = f"artifacts/{transformation_id}/{art_type}/v1/{filename}"
                 checksum = hashlib.sha256(binary_content).hexdigest()
                 await self.storage.put_object(storage_key, binary_content, content_type=content_type)
+
+                # Collect structured verification issues
+                ver_data = art_item.verification or {}
+                ver_issues = ver_data.get("issues") or ver_data.get("unsupported_claims") or []
+                ver_status = ver_data.get("status", "PASSED")
+                grounding_score = ver_data.get("grounding_score", 0.95)
 
                 # Store DB record if DB is available
                 if db:
@@ -230,9 +276,10 @@ class TransformationJobOrchestrator:
                         transformation_request_id=transformation_id,
                         cco_version_id=cco_version_id,
                         type=art_type,
-                        status="verified" if art_item.verification.get("status") == "PASSED" else "review_required",
+                        status=ArtifactStatus.PASSED if ver_status == "PASSED" else ArtifactStatus.REVISION_REQUIRED,
                         version=1,
-                        content_json=art_item.content,
+                        content_json=content_json,
+                        template_config=cfg.model_dump(),
                         storage_key=storage_key,
                         checksum=checksum,
                     )
@@ -241,11 +288,11 @@ class TransformationJobOrchestrator:
                     ver_res = VerificationResult(
                         id=f"VER-{uuid.uuid4().hex[:8].upper()}",
                         artifact_id=art_id,
-                        status=art_item.verification.get("status", "PASSED"),
-                        grounding_score=art_item.verification.get("grounding_score", 0.95),
+                        status=VerificationStatus.PASSED if ver_status == "PASSED" else VerificationStatus.REVISION_REQUIRED,
+                        grounding_score=grounding_score,
                         consistency_score=1.0,
-                        unsupported_claim_count=len(art_item.verification.get("unsupported_claims", [])),
-                        issues_json=art_item.verification.get("unsupported_claims", []),
+                        unsupported_claim_count=len(ver_issues),
+                        issues_json=ver_issues,
                     )
                     db.add(ver_res)
 
@@ -253,9 +300,13 @@ class TransformationJobOrchestrator:
                     "artifact_id": art_id,
                     "type": art_type,
                     "version": 1,
-                    "status": "verified" if art_item.verification.get("status") == "PASSED" else "review_required",
+                    "status": "PASSED" if ver_status == "PASSED" else "REVISION_REQUIRED",
                     "filename": filename,
                     "download_url": f"/api/v1/artifacts/{art_id}/download",
+                    "storage_key": storage_key,
+                    "checksum": checksum,
+                    "template_id": template_id,
+                    "classification": classification,
                 })
 
             if db:
@@ -309,6 +360,20 @@ class TransformationJobOrchestrator:
         except Exception:
             pass
 
+        # Broadcast progress event to Redis Pub/Sub channel
+        event_name = "complete" if status == "COMPLETED" else "error" if status == "FAILED" else "progress"
+        publish_event(
+            channel=f"transformation:{transformation_id}:events",
+            event_type=event_name,
+            data={
+                "transformation_id": transformation_id,
+                "status": status,
+                "progress_percentage": progress,
+                "message": message,
+                "artifacts": artifacts or [],
+            },
+        )
+
         db = new_db_session()
         try:
             db_trans = (
@@ -318,7 +383,31 @@ class TransformationJobOrchestrator:
             )
             if db_trans:
                 db_trans.status = status
-                db.commit()
+
+            # Update Job record in database
+            db_job = (
+                db.query(Job)
+                .filter(Job.transformation_id == transformation_id)
+                .order_by(Job.created_at.desc())
+                .first()
+            )
+            if db_job:
+                db_job.current_stage = status
+                db_job.progress_pct = progress
+                now_utc = datetime.now(timezone.utc)
+                if not db_job.started_at:
+                    db_job.started_at = now_utc
+                if status == "COMPLETED":
+                    db_job.status = JobStatus.SUCCEEDED
+                    db_job.completed_at = now_utc
+                elif status == "FAILED":
+                    db_job.status = JobStatus.FAILED
+                    db_job.error_message = message
+                    db_job.completed_at = now_utc
+                else:
+                    db_job.status = JobStatus.RUNNING
+
+            db.commit()
         except Exception as e:
             logger.warning(f"[JOB-ORCHESTRATOR] Status update failed: {e}")
             db.rollback()
@@ -347,6 +436,20 @@ class TransformationJobOrchestrator:
         except Exception:
             pass
 
+        # Broadcast progress event to Redis Pub/Sub channel
+        event_name = "complete" if status == "COMPLETED" else "error" if status == "FAILED" else "progress"
+        publish_event(
+            channel=f"transformation:{transformation_id}:events",
+            event_type=event_name,
+            data={
+                "transformation_id": transformation_id,
+                "status": status,
+                "progress_percentage": progress,
+                "message": message,
+                "artifacts": artifacts or [],
+            },
+        )
+
         if db:
             try:
                 db_trans = (
@@ -356,7 +459,31 @@ class TransformationJobOrchestrator:
                 )
                 if db_trans:
                     db_trans.status = status
-                    db.commit()
+
+                # Update Job record in database
+                db_job = (
+                    db.query(Job)
+                    .filter(Job.transformation_id == transformation_id)
+                    .order_by(Job.created_at.desc())
+                    .first()
+                )
+                if db_job:
+                    db_job.current_stage = status
+                    db_job.progress_pct = progress
+                    now_utc = datetime.now(timezone.utc)
+                    if not db_job.started_at:
+                        db_job.started_at = now_utc
+                    if status == "COMPLETED":
+                        db_job.status = JobStatus.SUCCEEDED
+                        db_job.completed_at = now_utc
+                    elif status == "FAILED":
+                        db_job.status = JobStatus.FAILED
+                        db_job.error_message = message
+                        db_job.completed_at = now_utc
+                    else:
+                        db_job.status = JobStatus.RUNNING
+
+                db.commit()
             except Exception:
                 db.rollback()
 
@@ -394,7 +521,29 @@ class IngestionJobOrchestrator:
             if not blocks:
                 raise ValueError("No extractable text found in document")
             logger.info(f"[INGESTION-WORKER] Parsed {len(blocks)} layout blocks from '{filename}'")
-            
+
+            # Check for prompt injection threats across layout blocks
+            all_threats = []
+            for b in blocks:
+                if "security_threats" in b.get("metadata", {}):
+                    all_threats.extend(b["metadata"]["security_threats"])
+
+            if all_threats and db:
+                logger.warning(f"[INGESTION-SECURITY] Detected {len(all_threats)} potential prompt injection pattern(s) in '{filename}' for document {document_id}")
+                record_security_event(
+                    db,
+                    event_type="PROMPT_INJECTION_DETECTED",
+                    severity="high",
+                    payload_summary=f"Detected {len(all_threats)} injection pattern(s) in document '{filename}': {all_threats[0]['matched_pattern']}",
+                    details={
+                        "document_id": document_id,
+                        "session_id": session_id,
+                        "filename": filename,
+                        "threat_count": len(all_threats),
+                        "threats": all_threats[:10],
+                    },
+                )
+
             # Extract full text
             full_text = "\n\n".join(b["text"] for b in blocks if "text" in b)
 
@@ -439,27 +588,32 @@ class IngestionJobOrchestrator:
                 # Add Source Blocks
                 for idx, b in enumerate(blocks):
                     db_block = SourceBlock(
-                        id=f"BLK-{document_id}-{idx}",
+                        id=f"BLK-{document_id[:8]}-{idx}",
                         document_id=document_id,
-                        block_type=b["block_type"],
-                        content=b["text"],
-                        page_number=b["page"],
-                        section_heading=b["section"],
-                        position_index=b["position"],
-                        metadata_json=b["metadata"]
+                        block_type=b.get("block_type", "paragraph"),
+                        text=b.get("text", ""),
+                        page=b.get("page"),
+                        position=b.get("position", idx),
+                        metadata_json={
+                            "section": b.get("section"),
+                            **(b.get("metadata") or {}),
+                        },
                     )
                     db.add(db_block)
 
-                # Add Embedded Chunks
-                for c, emb in zip(chunks, embeddings):
+                # Add Embedded Chunks with globally unique primary keys
+                for idx, (c, emb) in enumerate(zip(chunks, embeddings)):
+                    chunk_meta = c.get("metadata") or {}
                     db_chunk = Chunk(
-                        id=c["chunk_id"],
+                        id=f"CHK-{document_id[:8]}-{idx}",
                         document_id=document_id,
-                        content=c["text"],
-                        page_range=f"{c['metadata'].get('start_page', 1)}-{c['metadata'].get('end_page', 1)}",
-                        section_range=c["metadata"].get("section", "Introduction"),
-                        token_count=c["metadata"].get("estimated_tokens", 0),
-                        embedding=emb
+                        text=c.get("text", ""),
+                        section=chunk_meta.get("section") or c.get("section"),
+                        page=chunk_meta.get("start_page") or c.get("page"),
+                        chunk_index=c.get("chunk_index", idx),
+                        token_count=chunk_meta.get("estimated_tokens") or c.get("token_count", 0),
+                        metadata_json={**chunk_meta, "chunk_id": c.get("chunk_id", f"chunk-{idx:03d}")},
+                        embedding=emb,
                     )
                     db.add(db_chunk)
 
@@ -510,6 +664,29 @@ class IngestionJobOrchestrator:
             blocks = parse_document(content_bytes, filename=filename, mime_type=mime_type)
             if not blocks:
                 raise ValueError("No extractable text found in document")
+
+            # Check for prompt injection threats across layout blocks
+            all_threats = []
+            for b in blocks:
+                if "security_threats" in b.get("metadata", {}):
+                    all_threats.extend(b["metadata"]["security_threats"])
+
+            if all_threats and db:
+                logger.warning(f"[INGESTION-SECURITY] Detected {len(all_threats)} potential prompt injection pattern(s) in '{filename}' for document {document_id}")
+                record_security_event(
+                    db,
+                    event_type="PROMPT_INJECTION_DETECTED",
+                    severity="high",
+                    payload_summary=f"Detected {len(all_threats)} injection pattern(s) in document '{filename}': {all_threats[0]['matched_pattern']}",
+                    details={
+                        "document_id": document_id,
+                        "session_id": session_id,
+                        "filename": filename,
+                        "threat_count": len(all_threats),
+                        "threats": all_threats[:10],
+                    },
+                )
+
             full_text = "\n\n".join(b["text"] for b in blocks if "text" in b)
             logger.info(f"[INGESTION] 2/6: Parsed {len(blocks)} layout blocks from document ({len(full_text)} characters text).")
 
@@ -554,27 +731,32 @@ class IngestionJobOrchestrator:
                 # Add Source Blocks
                 for idx, b in enumerate(blocks):
                     db_block = SourceBlock(
-                        id=f"BLK-{document_id}-{idx}",
+                        id=f"BLK-{document_id[:8]}-{idx}",
                         document_id=document_id,
-                        block_type=b["block_type"],
-                        content=b["text"],
-                        page_number=b["page"],
-                        section_heading=b["section"],
-                        position_index=b["position"],
-                        metadata_json=b["metadata"]
+                        block_type=b.get("block_type", "paragraph"),
+                        text=b.get("text", ""),
+                        page=b.get("page"),
+                        position=b.get("position", idx),
+                        metadata_json={
+                            "section": b.get("section"),
+                            **(b.get("metadata") or {}),
+                        },
                     )
                     db.add(db_block)
 
                 # Add Embedded Chunks
-                for c, emb in zip(chunks, embeddings):
+                for idx, (c, emb) in enumerate(zip(chunks, embeddings)):
+                    chunk_meta = c.get("metadata") or {}
                     db_chunk = Chunk(
-                        id=c["chunk_id"],
+                        id=f"CHK-{document_id[:8]}-{idx}",
                         document_id=document_id,
-                        content=c["text"],
-                        page_range=f"{c['metadata'].get('start_page', 1)}-{c['metadata'].get('end_page', 1)}",
-                        section_range=c["metadata"].get("section", "Introduction"),
-                        token_count=c["metadata"].get("estimated_tokens", 0),
-                        embedding=emb
+                        text=c.get("text", ""),
+                        section=chunk_meta.get("section") or c.get("section"),
+                        page=chunk_meta.get("start_page") or c.get("page"),
+                        chunk_index=c.get("chunk_index", idx),
+                        token_count=chunk_meta.get("estimated_tokens") or c.get("token_count", 0),
+                        metadata_json={**chunk_meta, "chunk_id": c.get("chunk_id", f"chunk-{idx:03d}")},
+                        embedding=emb,
                     )
                     db.add(db_chunk)
 

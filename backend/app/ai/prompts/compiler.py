@@ -96,9 +96,10 @@ PRESENTATION FORMAT DIRECTIVES:
     elif plan.artifact_type == "infographic":
         format_specific_guidance = """
 INFOGRAPHIC FORMAT DIRECTIVES:
-- Populate `metrics` with 3-4 key quantitative KPIs from the document. Include `percent` (0-100 integer) for visual radial gauges, `value` with units, and context `trend`.
-- Populate `timeline` with chronological milestones, providing `time`, `event`, and `status` ('critical', 'warning', or 'success').
-- Populate `comparison_bars` with 3-4 comparative operational metrics, each with a valid `percent` (0-100) for width rendering.
+- You MUST populate `metrics` with 3-4 key operational KPIs or quantitative dimensions (e.g. 'Readiness Score', 'Scope Coverage', 'Sections Analyzed', 'Timeline SLA', or numerical facts from the text). Each metric MUST have `label`, `value` (with unit, e.g. '100%', '14 Nodes', '$2.5M', or 'Verified'), `trend`, `color` ('blue', 'emerald', 'purple', 'teal', 'amber', or 'rose'), and `percent` (integer 0-100 for gauge visualization). NEVER return an empty list for `metrics`.
+- You MUST populate `timeline` with 3-4 chronological milestones, project phases, or verification flow stages extracted from the document. Each entry MUST have `time` (e.g. 'Phase 1' or '00:00 (T0)'), `event`, `detail`, and `status` ('critical', 'warning', or 'success'). NEVER return an empty list for `timeline`.
+- You MUST populate `comparison_bars` with 3-4 comparative operational metrics, progress dimensions, or organizational priorities from the document. Each entry MUST have `label`, `value` (e.g. '100% Grounded'), `percent` (integer 0-100), and `color`. NEVER return an empty list for `comparison_bars`.
+- Populate `summary` with an executive narrative overview of the infographic findings.
 """
 
     user_instructions = f"""

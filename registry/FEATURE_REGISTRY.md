@@ -29,7 +29,17 @@
 | `FEAT-PIPE-002`| Live SSE Transformation Progress Streaming, Robust CCO Resolution & Error State Recovery | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-UI-004` | Document Preview Workspace & Artifact Experience Overhaul | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-AI-007` | Production-Ready AI Output Realism, Custom Instructions Propagation & Authentic Presentation/Social Formats | Fullstack (P1 / P2 / P3) | `main` | ✅ Completed | 2026-09-04 |
-| `FEAT-REV-001`| Dynamic Review Queue Data Sync & Role Access Authorization | Fullstack (P2 / P3) | `main` | ✅ Completed | 2026-09-05 |
+| `FEAT-SYS-002` | Corrective Pass: Reviewer Retirement, Enum Migrations & API Wiring | Fullstack | `main` | ✅ Completed | 2026-09-05 |
+| `FEAT-REV-001`| Dynamic Review Queue Data Sync & Role Access Authorization | Fullstack (P2 / P3) | `main` | ⚠️ Deprecated (Retired in Wave 1) | 2026-09-05 |
+| `FEAT-UI-005` | Premium Infographic Glassmorphism & Source Document Preview Accessibility | P2 (Frontend) | `feature/ui-infographic-aesthetics` | ✅ Completed | 2026-09-05 |
+| `FEAT-AVM-001`| Wave 2: Durable Document Ingestion & Redis-Backed Job Orchestration | Fullstack (P1 / P3) | `main` | ✅ Completed | 2026-09-05 |
+| `FEAT-SYS-003`| Upstash Redis Exclusivity, Multi-Tier Groq / Grok Fallback Cascade & Safe JSON Parsing | P1 (AI) / P3 (Backend) | `main` | ✅ Completed | 2026-09-05 |
+| `FEAT-AVM-002`| Wave 3: Controlled 6-Template Library, Server-Side Vector Infographic SVG Renderer, Structured Verification Findings & Claim-to-Evidence Inspector | Fullstack (P1 / P2 / P4) | `main` | ✅ Completed | 2026-09-05 |
+| `FEAT-AVM-003`| Wave 4: Artifact Lifecycle Experience, Version Lineage Navigation & Provenance Ledger UI | Fullstack (P2 / P3 / P5) | `main` | ✅ Completed | 2026-09-05 |
+| `FEAT-AVM-004`| Wave 5: Lifecycle & Security Test Suite & End-to-End Automated Smoke Verification | Fullstack (P1 / P3 / P4) | `main` | ✅ Completed | 2026-09-05 |
+| `FEAT-SEC-002`| Multi-Tenant Session & Artifact Isolation, Cross-User Leak Prevention & Real Artifact UI Wiring | Fullstack (P1 / P2 / P3 / P5) | `main` | ✅ Completed | 2026-09-05 |
+| `FEAT-PIPE-003`| Infographic Resilience, Chunk PK Collision Fix, Startup Redis Warmup & Dynamic Grounded Fallbacks | Fullstack (P1 / P2 / P3 / P4) | `main` | ✅ Completed | 2026-09-05 |
+| `FEAT-SYS-004`| Next.js 16 SSR Hydration Resolution, Real Admin Governance DB Wiring & Gemini Multimodal Image Embedding | Fullstack (P1 / P2 / P3) | `main` | ✅ Completed | 2026-09-06 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
 
 | `FEAT-RN-001`| *Example: Executive Summary HTML Renderer*| P4 (Renderers)| `feature/renderer-exec`| 📋 Planned | - |
@@ -37,6 +47,429 @@
 ---
 
 ## 📝 Detailed Feature Log
+
+### [FEAT-SYS-004] Next.js 16 SSR Hydration Resolution, Real Admin Governance DB Wiring & Gemini Multimodal Image Embedding
+- **Role / Owner:** Fullstack (P1 AI / P2 Frontend / P3 Backend API)
+- **Date Added:** 2026-09-06
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Next.js 16 / React 19 SSR Hydration Resolution:**
+     - Applied `suppressHydrationWarning` to `<html>` and `<body>` in `frontend/src/app/layout.tsx` to neutralize DOM attribute injections by browser extensions (e.g., `bis_skin_checked`, `bis_register`, `__processed_...`).
+     - Added client mounting guards (`mounted` state with `useEffect`) in `frontend/src/components/layout/Sidebar.tsx` and `frontend/src/components/dashboard/RecentSessionsTable.tsx` so store-persisted values (`activeRole`, `sidebarOpen`, Clerk display name) do not produce initial text or tree disparity between SSR HTML and client hydration.
+  2. **Real Admin Governance Data Wiring (PostgreSQL Connection):**
+     - Refactored `backend/app/api/v1/admin.py` to inject database dependency `db: Session = Depends(get_db)` into `/admin/users`, `/admin/audit-logs`, and `/admin/security-events`.
+     - In `AuditService(db=db)` and `app/api/v1/admin.py`, wired live queries against PostgreSQL `users`, `audit_logs`, and `security_events` tables instead of static mock fallback arrays.
+     - Implemented real user account provisioning (`POST /api/v1/admin/users`) and role update persistence (`PATCH /api/v1/admin/users/{id}/roles`) with automated non-repudiable audit logging (`record_audit_event`).
+     - Enhanced `get_current_user` in `backend/app/auth/dependencies.py` to dynamically query user roles from the PostgreSQL database and inject `X-User-Role` in `frontend/src/lib/api.ts`, ensuring authenticated admin users automatically receive full `system_audit` and `manage_users` RBAC permissions.
+     - Updated `AuditService.get_audit_logs` and `AuditLogResponse` schema to automatically resolve and attach real `actor_name` and `email` for every user action (ingestions, sessions, transformations, finalizations).
+     - In `frontend/src/lib/api.ts`, added typed client API methods: `fetchAdminUsers`, `provisionAdminUser`, `fetchAdminAuditLogs`, and `fetchAdminSecurityEvents`.
+     - Upgraded `frontend/src/components/admin/UserTable.tsx`, `AuditLogTable.tsx`, and `SecurityEventTable.tsx` to display real database records, count badges, refresh controls, loading skeletons, and interactive user provisioning modal.
+  3. **Gemini Multimodal Image Embedding Model (Strictly for Image Inputs):**
+     - Added `embed_image` and `embed_images_batch` in `backend/app/ai/embeddings.py` using Google Gemini multimodal embedding (`models/gemini-embedding-2` with `output_dimensionality=384`) via the official `google-genai` SDK.
+     - Strictly and exclusively invoked when the input is an image (figures, charts, diagrams), preserving fast local `SentenceTransformer` for text embeddings.
+     - Added automated regression test `test_gemini_image_embeddings` in `backend/tests/test_ai_pipeline.py`.
+- **Files Touched:**
+  - `frontend/src/app/layout.tsx`
+  - `frontend/src/components/layout/Sidebar.tsx`
+  - `frontend/src/components/dashboard/RecentSessionsTable.tsx`
+  - `backend/app/api/v1/admin.py`
+  - `backend/app/services/audit_service.py`
+  - `backend/app/schemas/admin.py`
+  - `backend/app/auth/dependencies.py`
+  - `frontend/src/lib/api.ts`
+  - `frontend/src/components/admin/UserTable.tsx`
+  - `frontend/src/components/admin/AuditLogTable.tsx`
+  - `frontend/src/components/admin/SecurityEventTable.tsx`
+  - `backend/app/ai/embeddings.py`
+  - `backend/tests/test_ai_pipeline.py`
+  - `registry/FEATURE_REGISTRY.md`
+- **Verification Instructions:**
+  1. Frontend: Run `npx tsc --noEmit` in `frontend/` (0 errors).
+  2. Backend: Run `uv run pytest tests/ -v` (39/39 passed).
+  3. Navigate to `http://localhost:3000/dashboard` in browser — verify zero console hydration warnings.
+  4. Navigate to `/admin/users`, `/admin/audit-logs`, `/admin/security-events` — verify real PostgreSQL user accounts, audit trails, and sentinel records load dynamically.
+
+### [FEAT-PIPE-003] Infographic Resilience, Chunk PK Collision Fix, Startup Redis Warmup & Dynamic Grounded Fallbacks
+- **Role / Owner:** Fullstack (P1 AI / P2 Frontend / P3 Backend / P4 Renderers)
+- **Date Added:** 2026-09-05
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Infographic Renderer Fault Tolerance:**
+     - Eliminated unhandled `ValueError("Infographic requires grounded metrics")` exceptions in `backend/app/renderers/infographic_renderer.py`. The renderer now gracefully synthesizes grounded metrics, milestones, and comparisons directly from CCO claims and narrative summaries.
+     - Added mandatory prompt directives in `backend/app/ai/prompts/compiler.py` instructing LLMs to populate `metrics` (with `percent` 0–100), `timeline`, and `comparison_bars`.
+     - In `frontend/src/components/artifacts/InfographicViewer.tsx`, added Executive Synthesis banner, Strategic Findings sections, and client-side radial progress ring fallbacks.
+  2. **Template Configuration Validation Fix:**
+     - Registered `video_package_default` and `social_post_default` specs in `backend/app/renderers/template_registry.py`.
+     - Added automatic fallback in `ArtifactTemplateConfig` to auto-resolve `get_default_template_id(self.artifact_type)` whenever `template_id` is empty (`""`) or unrecognized.
+  3. **Document Ingestion Chunk Primary Key Collision Fix:**
+     - Fixed critical PostgreSQL bug in `backend/app/jobs/orchestrator.py` where chunk primary keys used non-unique `chunk-000`, causing duplicate key violations on all subsequent uploads.
+     - Updated primary key generation to globally unique `f"CHK-{document_id[:8]}-{idx}"`.
+  4. **Redis Connection Warm-Up at Server Startup:**
+     - In `backend/app/main.py` FastAPI `lifespan`, proactively initialized and pinged both synchronous (`get_sync_redis_client().ping()`) and asynchronous (`await get_async_redis_client().ping()`) Redis connection pools upon server boot.
+  5. **Dynamic Document-Aware Fallbacks:**
+     - Updated `_get_fallback_artifact` in `backend/app/ai/generation/generator.py` to extract document title, overview, numbers, and claims directly from the prompt CCO instead of returning static cyber incident text when LLM providers encounter token limits (e.g. Groq 429).
+  6. **Executive Summary Viewer Overhaul:**
+     - Completely eliminated all hardcoded mock cybersecurity defaults ("14 core production database nodes", "$2.5M financial cap", "42m downtime") in `frontend/src/components/artifacts/ExecutiveSummaryViewer.tsx`.
+     - Added dynamic parsing for `sections`, `key_metrics`, and `recommendations` so the UI faithfully renders the actual document's content (e.g., student credentials, project systems, hackathon awards).
+  7. **Authenticated Binary Download & 403 Resolution:**
+     - Added `PERM_DOWNLOAD = "download"` to the RBAC matrix in `backend/app/auth/rbac.py` for `analyst` and `admin` roles.
+     - Added `headers["X-User-Id"]` to `getHeaders()` in `frontend/src/lib/api.ts` and created `downloadArtifactFile` to fetch artifacts via authenticated Blob stream rather than unauthenticated `window.open`.
+- **Key Modules / Files Modified:**
+  - `backend/app/renderers/infographic_renderer.py`
+  - `backend/app/renderers/template_registry.py`
+  - `backend/app/ai/prompts/compiler.py`
+  - `backend/app/ai/generation/generator.py`
+  - `backend/app/jobs/orchestrator.py`
+  - `backend/app/auth/rbac.py`
+  - `backend/app/auth/dependencies.py`
+  - `backend/app/main.py`
+  - `frontend/src/lib/api.ts`
+  - `frontend/src/components/artifacts/ArtifactViewer.tsx`
+  - `frontend/src/components/artifacts/ExecutiveSummaryViewer.tsx`
+  - `registry/FEATURE_REGISTRY.md`
+- **How to View & Verify:**
+  - Run full test suite: `uv run pytest tests/ -v` (38 passed).
+  - Inspect server startup logs to verify `[REDIS] Sync connection pool verified active at server boot.` and `[REDIS] Async connection pool verified active at server boot.`.
+  - Upload any document or resume in `/sessions` to verify clean ingestion and non-cyber dynamic generation.
+
+---
+
+### [FEAT-SEC-002] Multi-Tenant Session & Artifact Isolation, Cross-User Leak Prevention & Real Artifact UI Wiring
+- **Role / Owner:** Fullstack (P1 AI / P2 Frontend / P3 Backend / P5 Security)
+- **Date Added:** 2026-09-05
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Root-Cause Elimination of Cross-User CCO & Artifact Leakage:**
+     - Eliminated global un-scoped CCO queries (`CCOVersion.status == "active"`) in `TransformationService.create_transformation` which previously allowed a user's transformation to bind to an unrelated user's CCO when session CCO generation was pending.
+     - Transformation requests now strictly validate session ownership upfront (`HTTP 403 Forbidden` if session does not belong to the calling user).
+     - In `DocumentService`, added `assert_owner` checks on `upload_document` and `upload_document_stream` to reject cross-tenant document injections into foreign sessions.
+     - In `api/v1/documents.py` and `api/v1/artifacts.py`, removed conditional `if db:` guards so that ownership verification is strictly executed even under non-DB or mocked test contexts.
+     - In `ArtifactService.list_artifacts()`, enforced strict filtering by `user_id` so users never see artifacts generated by other tenants.
+  2. **Frontend Real Data Wiring:**
+     - Connected `/artifacts` page directly to real backend `/api/v1/artifacts` with user header propagation, status badges, and direct links to `/artifacts/[artifactId]`.
+     - Connected `/sessions/[sessionId]` CCO and Evidence viewer strictly to the active document without falling back to arbitrary tenant data.
+  3. **Automated Tenant Isolation Test Suite:**
+     - Created `backend/tests/test_tenant_isolation.py` (3 test cases) validating session isolation, artifact user scoping, and cross-user rejection on document and transformation access.
+- **Key Modules / Files Modified:**
+  - `backend/app/services/document_service.py`
+  - `backend/app/services/transformation_service.py`
+  - `backend/app/services/artifact_service.py`
+  - `backend/app/api/v1/documents.py`
+  - `backend/app/api/v1/artifacts.py`
+  - `backend/app/ai/gateway.py`
+  - `backend/tests/test_tenant_isolation.py`
+  - `frontend/src/lib/api.ts`
+  - `frontend/src/app/artifacts/page.tsx`
+  - `frontend/src/app/sessions/[sessionId]/page.tsx`
+  - `registry/FEATURE_REGISTRY.md`
+- **How to View & Verify:**
+  - Run the tenant isolation and API test suite:
+    ```bash
+    cd backend
+    uv run pytest tests/test_tenant_isolation.py tests/test_v1_api.py -v
+    ```
+  - Open the frontend browser at `http://localhost:3000/artifacts` and `http://localhost:3000/sessions` to verify that artifacts and sessions are strictly scoped to the active logged-in user.
+
+---
+
+### [FEAT-AVM-004] Wave 5: Lifecycle & Security Test Suite & End-to-End Automated Smoke Verification
+- **Role / Owner:** Fullstack (P1 AI / P3 Backend / P4 Renderers)
+- **Date Added:** 2026-09-05
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Wave 4 Lifecycle Integration Tests (`tests/test_wave4_lifecycle.py`):**
+     - Multi-tenant ownership isolation: Non-owners attempting to access or mutate artifacts receive `403 Forbidden` (`APIError: FORBIDDEN`).
+     - Version lineage creation: Revising an artifact creates a child revision with incremented version number (`version == 2`) and `parent_artifact_id` link.
+     - Version history hierarchy: `GET /api/v1/artifacts/{id}/versions` returns ordered version lists.
+     - Gated download integrity: Verifies that unverified or generating artifacts have download access gated, while `PASSED` / `FINALIZED` artifacts can be downloaded.
+     - Finalization & provenance anchoring: Verifies finalization requires `PASSED` state, transitions to `FINALIZED`, and records provenance status.
+  2. **End-to-End Automated Pipeline Smoke Test (`tests/test_e2e_smoke.py`):**
+     - Full pipeline verification covering:
+       - (1) Document multipart ingestion with SHA-256 checksum calculation.
+       - (2) Canonical Content Object (CCO v1) extraction and chunk grounding.
+       - (3) Transformation request dispatch for multi-format targets (`presentation`, `executive_summary`, `advisory`, `infographic`).
+       - (4) Controlled multi-format template rendering across PPTX (`executive_briefing`), DOCX (`executive_summary`), and SVG (`incident_brief`).
+       - (5) Claim grounding verification with strict numeric & entity audit.
+       - (6) Binary deliverable checksum and content integrity validation.
+       - (7) Owner finalization and cryptographic provenance record creation.
+- **Key Modules / Files Modified:**
+  - `backend/tests/test_wave4_lifecycle.py`
+  - `backend/tests/test_e2e_smoke.py`
+  - `registry/FEATURE_REGISTRY.md`
+- **How to View & Verify:**
+  - Run the automated lifecycle and smoke test suites:
+    ```bash
+    cd backend
+    uv run pytest tests/test_wave4_lifecycle.py tests/test_e2e_smoke.py -v
+    ```
+    (6/6 tests passing)
+
+---
+
+### [FEAT-AVM-003] Wave 4: Artifact Lifecycle Experience, Version Lineage Navigation & Provenance Ledger UI
+- **Role / Owner:** Fullstack (P2 Frontend / P3 Backend / P5 Security)
+- **Date Added:** 2026-09-05
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Artifact Version Lineage & Navigation (`ArtifactViewer.tsx`, `api.ts`, `artifact.ts`):**
+     - Implemented `fetchArtifactVersions(artifactId)` calling `GET /api/v1/artifacts/{id}/versions` to load the full lineage chain (`v1 -> vCurrent`).
+     - Added the Version Dropdown Selector to the header allowing seamless switching between revisions with visual status badges, revision count, and timestamps.
+     - Added the Outdated Version Warning banner when inspecting historical revisions with a 1-click "Jump to Latest" CTA.
+     - Added the Revision Context Changelog banner displaying the exact revision prompt instructions submitted for subsequent versions.
+  2. **Cryptographic Provenance & Ledger Card:**
+     - Added dedicated Provenance & Ledger Status audit card to the Verification Tab.
+     - Renders live SHA-256 Deliverable Binary hash and Verification Report hash with 1-click copy buttons.
+     - Displays Provenance Record Reference ID (`PRV-XXXXXXXX`) and Hyperledger Fabric Transaction status (`ANCHORED`, `PENDING ANCHOR`, or `UNANCHORED`).
+  3. **Gated Mutation & Download Controls:**
+     - Download is strictly gated on frontend and backend, only allowed for `PASSED` or `FINALIZED` artifacts.
+     - 1-click "Finalize" owner action records dual SHA-256 hashes and transitions artifact state to `FINALIZED`.
+     - 1-click "Revise" action opens a modal for targeted section feedback and queues generation of `v(N+1)` in the background.
+  4. **Frontend Architecture Refinement (`page.tsx`):**
+     - Wired session workspace artifact switching, automated version selection, and live revision refresh.
+- **Key Modules / Files Modified:**
+  - `backend/app/schemas/artifact.py` (Added `parent_artifact_id`, `provenance` to `ArtifactResponse`)
+  - `backend/app/services/artifact_service.py` (Added provenance serialization)
+  - `frontend/src/types/artifact.ts` (Extended `ArtifactItem` with `provenance`, `parent_artifact_id`, `ArtifactVersionItem`)
+  - `frontend/src/lib/api.ts` (Added `fetchArtifactVersions`)
+  - `frontend/src/components/artifacts/ArtifactViewer.tsx` (Version selector, Outdated banner, Revision callout, Provenance card)
+  - `frontend/src/app/sessions/[sessionId]/page.tsx` (Linked artifact navigation)
+- **How to View & Verify:**
+  - Run frontend TypeScript verification:
+    ```bash
+    cd frontend && npx tsc --noEmit
+    ```
+    (0 errors)
+  - Open `http://localhost:3000/sessions/{sessionId}`:
+    - View version dropdown `v1`, submit a revision note, and observe `v2` generation and selection.
+    - Click "Finalize" on a passed artifact and verify provenance ledger card displays pending on-chain status with dual SHA-256 hashes.
+
+---
+
+### [FEAT-AVM-002] Wave 3: Controlled 6-Template Visual Library, Server-Side Vector Infographic SVG Renderer, Structured Verification Findings & Claim-to-Evidence Inspector
+- **Role / Owner:** Fullstack (P1 AI / P2 Frontend / P4 Renderers)
+- **Date Added:** 2026-09-05
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Unified Design System & Color Tokens (`design_system.py`):**
+     - Established institutional color palettes:
+       - `executive_blue`: Deep Navy (`#0A2540`), Slate Grey (`#4A5568`), Enterprise Blue (`#0066CC`), Light Surface (`#F7FAFC`).
+       - `threat_dark`: Onyx Black (`#0B0F19`), Alert Crimson (`#DC2626`), Warning Amber (`#D97706`), Dark Surface (`#111827`).
+       - `modern_minimal`: Charcoal Slate (`#1A202C`), Subtle Emerald (`#059669`), Sky Accent (`#0284C7`), Crisp White (`#FFFFFF`).
+     - Added bidirectional helpers: `RGBColor` conversions for PPTX (`to_pptx()`) and DOCX (`to_docx()`), standard classification banners (`UNCLASSIFIED // TLP:CLEAR`, `CONFIDENTIAL // INTERNAL USE ONLY`, `RESTRICTED // LAW ENFORCEMENT SENSITIVE`, `TOP SECRET // NOFORN`), evidence badge formatting (`[E-XX]`), and SHA-256 provenance footers.
+  2. **Controlled 6-Template Specification Registry (`template_registry.py`):**
+     - Standardized `ArtifactTemplateConfig` contract across backend and frontend.
+     - Implemented 6 demo templates across target formats:
+       - **PPTX**: `incident_investigation` (16:9 widescreen layout, dark cyber forensics, IoC tables, timeline nodes, speaker notes), `executive_briefing` (16:9 widescreen layout, executive takeaways, impact metrics, action items).
+       - **DOCX**: `executive_summary` (Institutional layout, Document Control metadata box, key metrics bullet matrix, analytical sections), `security_advisory` (Threat severity callout box, affected infrastructure scope, tabular Indicators of Compromise).
+       - **Infographic SVG**: `incident_brief` (Vector SVG infographic, alert badge, incident metrics, vertical timeline nodes, audit watermark), `executive_snapshot` (Vector SVG infographic, KPI metric cards, comparative percentage progress bars, cryptographic provenance footer).
+  3. **Multi-Format Document & Presentation Renderers:**
+     - `pptx_renderer.py`: Upgraded to 16:9 widescreen multi-template engine, applying dynamic color tokens, evidence badges, classification banners, table styling, and preserving speaker notes slides.
+     - `docx_renderer.py`: Upgraded to multi-template document engine with formal Document Control tables, severity callouts, and IoC tables.
+     - `infographic_renderer.py`: Built standalone server-side vector SVG renderer returning pure `image/svg+xml` without external headless browser or canvas dependencies.
+  4. **Structured Verification Findings & Citation Ratio (`verifier.py`):**
+     - Upgraded `verify_artifact` to produce structured `issues_json` containing itemized `VerificationIssue` objects (`id`, `category`, `severity`, `location`, `offending_text`, `suggested_fix`, `evidence_id`).
+     - Added calculation of `citation_coverage` ratio (fraction of claims linked to valid evidence).
+     - Persisted in database and surfaced via `/api/v1/artifacts/{id}/verification`.
+  5. **Frontend Claim-to-Evidence Inspector & Template Controls:**
+     - `TransformationPlanner.tsx`: Implemented Controlled Template & Styling Matrix allowing users to customize template ID, theme palette, and classification banner per target format.
+     - `ArtifactViewer.tsx`: Built first-class "Verification Findings" audit tab with severity badges, offending text, and suggested fixes.
+     - Added the Two-Click Claim-to-Evidence Inspector side drawer: clicking any `[E-XX]` tag in slide previews, executive summaries, or advisories reveals the exact source chunk text, chunk ID, section title, and SHA-256 hash.
+  6. **Automated Verification:**
+     - Added `tests/test_wave3_templates.py` covering design tokens, template registry specs, PPTX widescreen rendering, DOCX multi-template rendering, server-side SVG vector generation, and structured verification issues.
+- **Key Modules / Files Modified:**
+  - `backend/app/renderers/design_system.py`
+  - `backend/app/renderers/template_registry.py`
+  - `backend/app/renderers/pptx_renderer.py`
+  - `backend/app/renderers/docx_renderer.py`
+  - `backend/app/renderers/infographic_renderer.py`
+  - `backend/app/ai/verification/verifier.py`
+  - `backend/app/jobs/orchestrator.py`
+  - `backend/app/services/artifact_service.py`
+  - `backend/app/services/transformation_service.py`
+  - `backend/tests/test_wave3_templates.py`
+  - `frontend/src/types/transformation.ts`
+  - `frontend/src/types/artifact.ts`
+  - `frontend/src/components/transform/TransformationPlanner.tsx`
+  - `frontend/src/components/artifacts/ArtifactViewer.tsx`
+  - `frontend/src/components/artifacts/PresentationSlidePreview.tsx`
+  - `frontend/src/components/artifacts/ExecutiveSummaryViewer.tsx`
+- **How to View & Verify:**
+  - Run all Wave 3 automated tests:
+    ```bash
+    cd backend
+    uv run pytest tests/test_wave3_templates.py -v
+    ```
+    (Expected output: 6 passed)
+  - Run the full backend test suite:
+    ```bash
+    cd backend
+    uv run pytest tests/
+    ```
+    (Expected output: 29 passed)
+  - Verify frontend TypeScript types:
+    ```bash
+    cd frontend
+    npx tsc --noEmit
+    ```
+    (Expected output: 0 errors)
+  - Launch application and test in browser:
+    - Open `http://localhost:3000/sessions/new` or an existing session.
+    - On the Transformation configuration step, select formats (Presentation, Executive Summary, Infographic). Notice the Controlled Template & Styling Matrix where you can choose templates (e.g. `Incident Investigation (16:9 Forensic)`), themes (`threat_dark`, `executive_blue`), and classification banners.
+    - Generate artifacts. In the Artifact Viewer, inspect the new "Verification Findings" audit tab to view itemized issues with severity chips and suggested fixes.
+    - Click any `[E-01]` or `[E-02]` badge in the slide preview or executive summary to open the Two-Click Claim-to-Evidence Inspector drawer showing grounded source text.
+
+### [FEAT-SYS-003] Upstash Redis Exclusivity, Multi-Tier Groq / Grok Fallback Cascade & Safe JSON Parsing
+- **Role / Owner:** P1 (AI Engine) / P3 (Backend API)
+- **Date Added:** 2026-09-05
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Upstash Redis Exclusivity & Dual Interface Support:**
+     - Integrated `upstash-redis>=1.8.0` alongside `redis>=8.1.0`.
+     - Built automatic bidirectional credential resolution in `app/core/config.py` and `app/core/redis.py`:
+       - Synthesizes `rediss://default:{token}@{host}:6379` from `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+       - Automatically derives REST credentials (`https://{host}` and `token`) from standard Upstash connection URLs.
+       - Supports both standard Redis TCP (for RQ queues and Redis Pub/Sub live streaming) and direct Upstash REST API (`get_upstash_rest_client()`), eliminating any requirement for local Docker Redis.
+  2. **Multi-Account Groq Key Pool (Round-Robin & Instant 429 Failover):**
+     - Added `GROQ_API_KEY_SECOND` and `groq_api_keys` list property in `Settings` supporting aliases (`GROQ_API_KEY_2`, `GROQ_SECONDARY_API_KEY`, etc.).
+     - Built `GroqKeyPool` in `app/ai/gateway.py`:
+       - **Round-Robin Load Balancing:** Automatically alternates incoming requests across all configured developer accounts, doubling effective RPM / TPM limits.
+       - **Instant 429 Rate-Limit Failover:** When an account hits an HTTP 429 rate limit or token exhaustion, `mark_rate_limited()` immediately engages a cooldown period and transparently routes the request to the healthy secondary key without dropping user work.
+  3. **Multi-Tier Model Fallback Cascade (Groq & xAI Grok):**
+     - Configured secondary fallback models in `Settings` with case-insensitive environment alias support (`AliasChoices`):
+       - Groq: `GROQ_GENERATION_MODEL` (`openai/gpt-oss-120b`) $\rightarrow$ `GROQ_FALLBACK_MODEL` (`qwen/qwen3.8-27b`) $\rightarrow$ `GROQ_SECOND_FALLBACK_MODEL` (`openai/gpt-oss-20b`).
+       - Grok: `GROK_MODEL` (`grok-2-latest`) $\rightarrow$ `GROK_FALLBACK_MODEL` (`grok-2`) $\rightarrow$ `GROK_SECOND_FALLBACK_MODEL` (`grok-beta`).
+     - Enhanced `GroqProvider.generate()` and `GrokProvider.generate()` with iterative candidate retry logic: if a primary model is unavailable or encounters a transient rate limit/404, the provider seamlessly retries with secondary fallbacks without failing user requests.
+  4. **Safe JSON Parsing Across All LLM Providers:**
+     - Implemented `clean_json_str()` utility in `app/ai/gateway.py` to extract valid JSON blocks from markdown fences (````json ... ````), introductory commentary, or trailing text.
+     - Wired into `GeminiProvider`, `GroqProvider`, `GrokProvider`, and `OpenAIProvider`, preventing `JSONDecodeError` across all fallback models.
+  5. **Documentation & Templates:**
+     - Updated `.env.example` at root and added `backend/.env.example` with clear instructions for Upstash Redis, multi-account Groq keys, and multi-tier model configuration.
+- **Key Modules / Files Modified:**
+  - `backend/pyproject.toml`
+  - `backend/app/core/config.py`
+  - `backend/app/core/redis.py`
+  - `backend/app/ai/gateway.py`
+  - `.env.example`, `backend/.env.example`
+- **How to View & Verify:**
+  - Test Upstash TCP and REST connectivity:
+    ```bash
+    cd backend
+    uv run python -c "from app.core.redis import is_redis_available, get_upstash_rest_client; print('Redis TCP:', is_redis_available()); client = get_upstash_rest_client(); print('REST Ping:', client.ping() if client else None)"
+    ```
+    (Expected output: `Redis TCP: True`, `REST Ping: PONG`)
+  - Test Groq round-robin key pool:
+    ```bash
+    cd backend
+    uv run python -c "from app.ai.gateway import get_groq_pool; pool = get_groq_pool(); print('Round robin rotation:', [pool.get_candidate_keys()[0][-6:] for _ in range(4)])"
+    ```
+    (Expected output: Alternating key suffixes in round-robin sequence)
+  - Test multi-tier fallback cascade:
+    ```bash
+    cd backend
+    uv run python -c "import asyncio; from app.ai.gateway import GroqProvider; p = GroqProvider(); print(asyncio.run(p.generate([{'role': 'user', 'content': 'Return JSON with key ok and value true'}], model='nonexistent-model')))"
+    ```
+    (Expected output: Catches 404 on invalid model, retries with `qwen/qwen3.8-27b`, returns `{'ok': True}`)
+  - Run full test suite:
+    ```bash
+    cd backend
+    uv run pytest tests/
+    ```
+    (Expected output: `23 passed in 56s`)
+
+### [FEAT-AVM-001] Wave 2: Durable Document Ingestion & Redis-Backed Job Orchestration
+- **Role / Owner:** Fullstack (P1 AI Engine / P3 Backend API)
+- **Date Added:** 2026-09-05
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  Implemented Wave 2 of the Automated Verification MVP architecture:
+  1. **Durable Document Ingestion & File Validation:** Enforced strict file validation constraints in `DocumentService._validate_file` (empty file check, 50MB file size limit with security audit logging, and supported format enforcement for PDF, DOCX, PPTX, TXT, MD).
+  2. **Prompt Injection Heuristic Guardrails:** Added multi-pattern regex scanner `detect_prompt_injection` in `app/ai/ingestion/parser.py` detecting instruction overrides, persona hijacking (e.g. DAN/unrestricted mode), prompt leaks, and script injections. Tagged untrusted layout blocks and hooked real-time detection into `record_security_event` (`event_type="PROMPT_INJECTION_DETECTED"`, `severity="high"`).
+  3. **Database Job Model & Alembic Migration:** Created the persistent `Job` SQLAlchemy model in `app/models/transformation.py` tracking external RQ job IDs, `JobStatus` enum (`QUEUED`, `RUNNING`, `RETRYING`, `SUCCEEDED`, `FAILED`, `CANCELLED`), progress percentage, stage, error messages, and worker identifiers. Generated and applied Alembic migration `301c7821d862_add_jobs_table.py` to Neon PostgreSQL.
+  4. **Redis & RQ Infrastructure:** Integrated `rq>=2.12.0` and `redis>=8.1.0`. Built `app/core/redis.py` providing sync/async connection management to Upstash Redis, connection health caching, and `get_rq_queue`. Created multi-platform standalone RQ worker script `scripts/run_rq_worker.py` utilizing `SimpleWorker` for Windows/Unix compatibility.
+  5. **Decoupled Orchestration with Real-time Redis Pub/Sub:** Decoupled transformation job submission from FastAPI threads. Implemented job idempotency to prevent duplicate active jobs for the same transformation. Wired live progress transitions in `TransformationJobOrchestrator` to publish events directly to Redis Pub/Sub channel `transformation:{id}:events`. Refactored `GET /api/v1/transformations/{id}/stream` to subscribe to the Redis channel with automatic fallback, delivering instantaneous milestone SSE streaming with zero polling latency.
+- **Key Modules / Files Modified:**
+  - `backend/app/models/transformation.py`, `backend/app/models/__init__.py`
+  - `backend/migrations/versions/301c7821d862_add_jobs_table.py`
+  - `backend/app/ai/ingestion/parser.py`
+  - `backend/app/services/document_service.py`, `backend/app/services/transformation_service.py`
+  - `backend/app/core/redis.py`
+  - `backend/app/jobs/worker.py`, `backend/app/jobs/orchestrator.py`
+  - `backend/app/api/v1/transformations.py`
+  - `backend/scripts/run_rq_worker.py`
+  - `backend/tests/test_wave2_orchestration.py`
+- **How to View & Verify:**
+  - Run the full automated backend test suite:
+    ```bash
+    cd backend
+    uv run pytest
+    ```
+    (Expected output: 23 passed tests, 0 failures)
+  - Run the standalone RQ worker:
+    ```bash
+    cd backend
+    uv run python scripts/run_rq_worker.py --burst
+    ```
+  - Verify PostgreSQL schema:
+    ```bash
+    cd backend
+    uv run alembic current
+    ```
+    (Expected output: `301c7821d862 (head)`)
+  - Run frontend typecheck:
+    ```bash
+    cd frontend
+    npx tsc --noEmit
+    ```
+    (Expected output: 0 errors)
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Frontend Lint/TS Regressions:** Resolved 55+ TypeScript and Next.js routing errors caused by incomplete removal of the Reviewer role. Removed dangling references in `MetricCards.tsx`, `Sidebar.tsx`, `Topbar.tsx`, and `useAuthStore.ts`, and deleted deprecated components like `RecentReviewList.tsx`.
+  2. **API Wiring for Finalization/Revision:** Implemented real API calls `finalizeArtifact` and `reviseArtifact` in `frontend/src/lib/api.ts` and connected them to UI actions in `ArtifactViewer.tsx`, eliminating frontend-only visual state updates.
+  3. **Backend Finalization Logic:** Rewrote `ArtifactService.finalize_artifact` to enforce that an artifact must have `PASSED` verification status before it can be finalized by the owner, completely decoupling it from the old reviewer logic. Records an `ARTIFACT_FINALIZED` audit event.
+  4. **Database Enum Migrations & Schema Fixes:** Updated backend models `Artifact` and `TransformationRequest` to use robust PostgreSQL Enum columns (`ArtifactStatus`, `TransformationStatus`, `VerificationStatus`). Added `template_configs` column. Fixed the Orchestrator by changing `PROCESSING` to `PLANNING` to match Enum definitions, and ran `alembic upgrade head`.
+- **Key Modules / Files Modified:**
+  - `frontend/src/components/admin/UserTable.tsx`, `frontend/src/components/dashboard/MetricCards.tsx`
+  - `frontend/src/components/layout/Topbar.tsx`, `frontend/src/components/layout/Sidebar.tsx`
+  - `frontend/src/store/useAuthStore.ts`, `frontend/src/lib/api.ts`
+  - `frontend/src/components/artifacts/ArtifactViewer.tsx`
+  - `backend/app/services/artifact_service.py`
+  - `backend/app/models/artifact.py`, `backend/app/models/transformation.py`
+  - `backend/app/schemas/enums.py`
+  - `backend/app/jobs/orchestrator.py`, `backend/app/services/transformation_service.py`
+- **How to View & Verify:**
+  - Run frontend typecheck: `npx tsc --noEmit` (0 errors).
+  - Inspect `ArtifactViewer.tsx` to confirm API integration for "Finalize" and "Revise".
+  - Verify Neon DB `artifacts.status` and `transformation_requests.status` are Enums.
+
+---
+
+### [FEAT-UI-005] Premium Infographic Glassmorphism & Source Document Preview Accessibility
+- **Role / Owner:** P2 (Frontend Engineer)
+- **Date Added:** 2026-09-05
+- **Branch:** `feature/ui-infographic-aesthetics`
+- **Status:** ✅ Completed
+- **Description:**  
+  Elevated the visual aesthetics of the infographic artifact viewer and improved source document accessibility:
+  1. **Source Document Access:** Added a direct "View Full Source Document" button below the CCO summary in the default Split workbench mode, bridging the gap between the split layout and the full tabs viewer.
+  2. **Premium Infographics:** Upgraded `InfographicViewer.tsx` with glassmorphism backgrounds (`backdrop-blur-xl`, `bg-white/70`), ambient glowing backdrops, SVG-based radial gradients for metric rings, and animated CSS gradient fill bars.
+  3. **Connected Timeline:** Redesigned the isolated chronological events into a visually connected timeline using horizontal trace lines and pulsing interactive nodes.
+- **Touched / Created Files:**
+  - `frontend/src/app/sessions/[sessionId]/page.tsx`
+  - `frontend/src/components/artifacts/InfographicViewer.tsx`
+- **How to View & Verify:**
+  - Open any session (e.g. `http://localhost:3000/sessions/SES-27067325`).
+  - In the default left-hand pane, click **View Full Source Document**.
+  - Open an infographic artifact to view the animated SVG rings, glass panels, and connected timeline flow.
+
+---
 
 ### [FEAT-002] Root Registry & Organized Docs Hub (PRDs & Specifications)
 - **Role / Owner:** Shared (All Roles)
@@ -619,6 +1052,98 @@
   - Observe pending reviewer approval items (e.g. `ART-001`, `ART-002`, `ART-003` with grounding scores, flagged issues, and "Review Artifact" actions) matching the sidebar badge `[ 3 ]`.
 
 
+
+### [FEAT-BUG-001] Root-Cause Fix: SourceBlock & Chunk Ingestion DB Schema Mismatch
+- **Role / Owner:** P1 (AI) | P3 (Backend)
+- **Date Added:** 2026-09-05
+- **Branch:** feature/backend-ingestion-schema-fix
+- **Status:** ✅ Completed
+- **Description:**  
+  Live document ingestion was crashing with `TypeError: 'content' is an invalid keyword argument for SourceBlock`.
+  Root cause: `orchestrator.py` (`process()` and `stream_process()`) was constructing `SourceBlock` and `Chunk` ORM
+  models with non-existent field names (`content`, `page_number`, `section_heading`, `position_index`, `page_range`,
+  `section_range`) that do not exist in the actual SQLAlchemy model definitions in `chunk.py`.
+  Additionally, the source-text resolution query used `SourceBlock.position_index` and `b.content` which also do not exist.
+  Fixed by aligning all instantiation and query references to the actual model fields:
+  `SourceBlock(text=, page=, position=, metadata_json=)` and `Chunk(text=, section=, page=, chunk_index=, token_count=, metadata_json=, embedding=)`.
+  Also fixed `artifact_service.py` which read `block.content` instead of `block.text`.
+- **Key Modules / Files Modified:**
+  - `backend/app/jobs/orchestrator.py` (lines ~93-101, ~580-611, ~723-754)
+  - `backend/app/services/artifact_service.py` (line ~249)
+- **Exposed Endpoints / Components / Recipes:**
+  - `POST /api/v1/documents/upload` (ingestion flow)
+  - `GET /api/v1/artifacts/{id}/verify`
+- **How to View & Verify:**
+  - Command: `cd backend && uv run pytest -v`
+  - Upload a document via the UI and verify ingestion completes to `ready` status with zero TypeErrors in backend logs.
+
+---
+
+### [FEAT-BUG-002] Root-Cause Fix: Groq JSON Token Truncation & Multi-Model Fallback Cascade
+- **Role / Owner:** P1 (AI)
+- **Date Added:** 2026-09-05
+- **Branch:** feature/backend-llm-token-fix
+- **Status:** ✅ Completed
+- **Description:**  
+  Transformation pipeline was failing with Groq HTTP 400 `json_validate_failed: max completion tokens reached before generating a valid document`.
+  Root cause: all Groq `client.chat.completions.create()` calls in `gateway.py` omitted `max_tokens`, causing the API to
+  use a very low default completion token limit that truncated JSON mid-generation. The fallback cascade also had
+  all three slots pointing to the same `openai/gpt-oss-20b`, so no real fallback existed.
+  Fixed by:
+  1. Adding `max_tokens: int = 4096` parameter to `LLMProvider` abstract base class and all concrete providers
+     (`GroqProvider`, `GrokProvider`, `GeminiProvider`, `OpenAIProvider`) and passing it to every API call.
+  2. Propagating `max_tokens=4096` through all call sites: `semantic.py`, `planner.py`, `generator.py`, `revisor.py`.
+  3. Setting `GROQ_SECOND_FALLBACK_MODEL = "qwen/qwen3.8-27b"` so the three-tier cascade uses distinct models.
+- **Key Modules / Files Modified:**
+  - `backend/app/ai/gateway.py`
+  - `backend/app/core/config.py`
+  - `backend/app/ai/extraction/semantic.py`
+  - `backend/app/ai/planner/planner.py`
+  - `backend/app/ai/generation/generator.py`
+  - `backend/app/ai/revision/revisor.py`
+- **Exposed Endpoints / Components / Recipes:**
+  - `POST /api/v1/transform/execute`
+  - `POST /api/v1/transform/stream`
+- **How to View & Verify:**
+  - Command: `cd backend && uv run pytest -v`
+  - Trigger a full transformation from the UI and verify backend logs show no Groq 400 errors and all artifacts generate cleanly.
+
+### [FEAT-SEC-001] Session Management & Tenant Isolation Hardening for Documents & Artifacts
+- **Role / Owner:** P2 (Frontend) | P3 (Backend) | P5 (Security)
+- **Date Added:** 2026-09-05
+- **Branch:** feature/session-isolation-artifact-fix
+- **Status:** ✅ Completed
+- **Description:**  
+  Fixed cross-user session/data leakage where transformation jobs generated artifacts containing another user's document data, and fixed artifact listing and CCO grounding in the frontend:
+  1. **Cross-Tenant CCO Fallback Elimination:** Removed dangerous unconstrained queries in `TransformationService.create_transformation` and `TransformationJobOrchestrator` that queried the global `CCOVersion` table without session/user scoping when a document CCO was not immediately available. Scoped CCO resolution strictly to the active session's documents and requesting user.
+  2. **Session & Artifact RBAC / Ownership Checks:** Enforced user ownership verification on `GET /api/v1/sessions/{id}`, `GET /api/v1/sessions/{id}/artifacts`, `PATCH /api/v1/sessions/{id}`, `DELETE /api/v1/sessions/{id}`, and artifact actions. User B cannot read or delete User A's sessions, documents, or artifacts.
+  3. **Added User Artifact Listing Endpoint:** Implemented `GET /api/v1/artifacts` in `backend/app/api/v1/artifacts.py` and `ArtifactService.list_artifacts()` to allow users to view all their generated artifacts across sessions.
+  4. **Frontend Auth Headers on File Upload:** Fixed `uploadDocument()` in `frontend/src/lib/api.ts` which was omitting user authentication headers during multipart uploads.
+  5. **Frontend Live CCO & Evidence Synchronization:** Updated `SessionWorkspacePage` (`frontend/src/app/sessions/[sessionId]/page.tsx`) to fetch real document CCO and evidence chunks from backend upon session load, and updated `frontend/src/app/artifacts/page.tsx` to list live artifacts with working links and type badges.
+- **Key Modules / Files Modified:**
+  - `backend/app/services/transformation_service.py` (Scoped CCO resolution strictly to session)
+  - `backend/app/jobs/orchestrator.py` (Scoped CCO and document persistence strictly to session)
+  - `backend/app/services/session_service.py` (Added user ownership checks to get, update, delete)
+  - `backend/app/api/v1/sessions.py` (Propagated user/role to service methods)
+  - `backend/app/services/artifact_service.py` (Added `list_artifacts` and session owner assertions)
+  - `backend/app/api/v1/artifacts.py` (Added `GET /api/v1/artifacts` endpoint)
+  - `backend/app/services/document_service.py` (Added database Chunk/SourceBlock queries to `get_document_evidence`)
+  - `backend/tests/test_tenant_isolation.py` (Comprehensive isolation test suite)
+  - `frontend/src/lib/api.ts` (Auth headers in upload, `fetchArtifacts`, `fetchDocumentCCO`, `fetchDocumentEvidence`)
+  - `frontend/src/app/artifacts/page.tsx` (Live artifact listing with icons & formats)
+  - `frontend/src/app/sessions/[sessionId]/page.tsx` (Live CCO & evidence loading)
+  - `frontend/src/types/session.ts` (Updated `SessionItem` typing)
+- **Exposed Endpoints / Components / Recipes:**
+  - `GET /api/v1/artifacts`
+  - `GET /api/v1/sessions/{id}/artifacts`
+  - `GET /api/v1/documents/{id}/cco`
+  - `GET /api/v1/documents/{id}/evidence`
+- **How to View & Verify:**
+  - Backend Tests: `cd backend && uv run pytest -v` (37/37 tests passed)
+  - Frontend Build: `cd frontend && npx tsc --noEmit`
+  - In frontend, create a session as User A, upload a document, plan and generate artifacts. Log in or query as User B and verify User B cannot access User A's session or artifacts.
+
+---
 
 <!-- 
 ================================================================================

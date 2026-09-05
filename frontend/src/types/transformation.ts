@@ -24,11 +24,22 @@ export interface TransformationParams {
   social_config?: SocialConfig;
 }
 
+export interface ArtifactTemplateConfig {
+  artifact_type: OutputType;
+  template_id: string;
+  brand_theme?: "executive_blue" | "threat_dark" | "modern_minimal" | string;
+  classification?: string;
+  orientation?: "landscape" | "portrait";
+  include_evidence_refs?: boolean;
+  include_verification_footer?: boolean;
+}
+
 export interface TransformationCreatePayload extends TransformationParams {
   session_id: string;
   source_document_id?: string;
   cco_version_id?: string;
   output_types: OutputType[];
+  template_configs?: Record<string, ArtifactTemplateConfig>;
 }
 
 export interface TransformationStatusItem {

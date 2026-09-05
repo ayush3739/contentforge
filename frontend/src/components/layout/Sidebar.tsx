@@ -24,7 +24,6 @@ import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
 
 import { useEffect, useState } from "react";
-import { fetchReviewQueue } from "@/lib/api";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -33,20 +32,10 @@ export default function Sidebar() {
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const { user: clerkUser } = useUser();
   const clerk = useClerk();
-  const [reviewCount, setReviewCount] = useState<number>(3);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    async function loadBadgeCount() {
-      try {
-        const items = await fetchReviewQueue();
-        if (Array.isArray(items)) {
-          setReviewCount(items.length);
-        }
-      } catch (err) {
-        // ignore
-      }
-    }
-    loadBadgeCount();
+    setMounted(true);
   }, []);
 
   const handleLogout = async () => {
@@ -61,21 +50,22 @@ export default function Sidebar() {
     router.push("/login");
   };
 
-  const displayName =
-    clerkUser?.username ||
-    clerkUser?.fullName ||
-    clerkUser?.primaryEmailAddress?.emailAddress?.split("@")[0] ||
-    "Operator";
+  const displayName = mounted
+    ? (clerkUser?.username ||
+       clerkUser?.fullName ||
+       clerkUser?.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+       "Operator")
+    : "Operator";
 
   const isAnalyst = true;
-  const isReviewer = activeRole === "reviewer" || activeRole === "admin";
-  const isAdmin = activeRole === "admin";
+  const isAdmin = mounted && activeRole === "admin";
+  const displayRole = mounted ? activeRole : "analyst";
+  const effectiveSidebarOpen = mounted ? sidebarOpen : true;
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, show: isAnalyst },
     { label: "Sessions", href: "/sessions", icon: FolderKanban, show: isAnalyst },
     { label: "New Session", href: "/sessions/new", icon: PlusCircle, show: isAnalyst },
-    { label: "Review Queue", href: "/review", icon: ClipboardCheck, show: isReviewer, badge: reviewCount > 0 ? String(reviewCount) : undefined },
     { label: "Artifacts", href: "/artifacts", icon: FileSpreadsheet, show: isAnalyst },
   ];
 
@@ -157,11 +147,6 @@ export default function Sidebar() {
                     )}
                   />
                   {sidebarOpen && <span className="truncate">{item.label}</span>}
-                  {item.badge && sidebarOpen && (
-                    <span className="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                      {item.badge}
-                    </span>
-                  )}
                 </Link>
               );
             })}
@@ -213,7 +198,7 @@ export default function Sidebar() {
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
               <span className="text-[11px] font-medium">Signed in as:</span>
               <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 uppercase">
-                {activeRole}
+                {displayRole}
               </span>
             </div>
             <div className="font-bold text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5">

@@ -38,6 +38,8 @@ class UserResponse(BaseModel):
 class AuditLogResponse(BaseModel):
     id: str
     user_id: Optional[str] = None
+    actor_name: Optional[str] = None
+    email: Optional[str] = None
     action: str
     resource_type: str
     resource_id: Optional[str] = None

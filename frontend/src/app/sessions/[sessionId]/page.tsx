@@ -3,7 +3,7 @@
 import React, { use, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSessionStore } from "@/store/useSessionStore";
-import { fetchSession, fetchSessionArtifacts } from "@/lib/api";
+import { fetchSession, fetchSessionArtifacts, fetchDocumentCCO, fetchDocumentEvidence } from "@/lib/api";
 import SourceViewer from "@/components/source/SourceViewer";
 import CCOViewer from "@/components/cco/CCOViewer";
 import EvidenceViewer from "@/components/evidence/EvidenceViewer";
@@ -41,7 +41,16 @@ export default function SessionWorkspacePage({
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const viewParam = searchParams.get("view");
-  const { currentSession, setCurrentSession, currentCCO, activeTab, setActiveTab } = useSessionStore();
+  const {
+    currentSession,
+    setCurrentSession,
+    setDocuments,
+    currentCCO,
+    setCurrentCCO,
+    setEvidenceChunks,
+    activeTab,
+    setActiveTab,
+  } = useSessionStore();
   const [layoutMode, setLayoutMode] = useState<"split" | "tabs">("split");
   const [activeStage, setActiveStage] = useState<"plan" | "artifacts">(
     tabParam === "transform" ? "plan" : viewParam === "artifacts" ? "artifacts" : "plan"
@@ -61,6 +70,35 @@ export default function SessionWorkspacePage({
 
       if (sess) {
         setCurrentSession(sess);
+        if (sess.documents && sess.documents.length > 0) {
+          setDocuments(sess.documents);
+          const firstDocId = sess.documents[0].id;
+          try {
+            const [ccoData, evidenceData] = await Promise.all([
+              fetchDocumentCCO(firstDocId).catch(() => null),
+              fetchDocumentEvidence(firstDocId).catch(() => null),
+            ]);
+            if (ccoData?.cco_json) {
+              const ccoJson = ccoData.cco_json;
+              setCurrentCCO({
+                document_id: firstDocId,
+                cco_version_id: ccoData.cco_version_id || `CCO-${firstDocId}`,
+                version: ccoData.version || 1,
+                title: ccoJson.metadata?.title || ccoJson.title || sess.documents[0].name,
+                executive_overview: ccoJson.metadata?.overview || ccoJson.overview || ccoJson.summary || "",
+                hash: ccoData.hash || "",
+                claims: ccoJson.claims || [],
+                identifiers: ccoJson.deterministic_extractions?.rules || ccoJson.identifiers || [],
+                key_findings: ccoJson.semantic_extractions?.key_findings || ccoJson.key_findings || [],
+              });
+            }
+            if (evidenceData?.chunks) {
+              setEvidenceChunks(evidenceData.chunks);
+            }
+          } catch (e) {
+            console.error("Failed to fetch CCO/evidence for document:", e);
+          }
+        }
       }
 
       setArtifacts(arts || []);
@@ -80,7 +118,7 @@ export default function SessionWorkspacePage({
     } finally {
       setIsLoadingArtifacts(false);
     }
-  }, [sessionId, tabParam, viewParam, setCurrentSession]);
+  }, [sessionId, tabParam, viewParam, setCurrentSession, setDocuments, setCurrentCCO, setEvidenceChunks]);
 
   useEffect(() => {
     loadData();
@@ -103,42 +141,7 @@ export default function SessionWorkspacePage({
     }
   };
 
-  const mockArtifact = {
-    artifact_id: `ART-${sessionId.substring(4, 10)}`,
-    transformation_request_id: `TR-${sessionId.substring(4, 10)}`,
-    cco_version_id: currentCCO?.cco_version_id || "CCO-v1",
-    type: "presentation",
-    version: 1,
-    status: "verified" as const,
-    filename: `presentation_${sessionId.substring(4, 10)}.pptx`,
-    download_url: `/api/v1/artifacts/${sessionId}/download`,
-    checksum: currentCCO?.hash || "sha256:8a91f42e391b002c91847120a11c8d",
-    available_formats: ["presentation", "executive_summary", "advisory"],
-    content_json: {
-      title: currentSession?.name ? `${currentSession.name} - Grounded Output` : "Grounded Transformation Briefing",
-      executive_overview: currentCCO?.executive_overview || "Semantic transformation pipeline grounded against source document.",
-      key_findings: (currentCCO?.key_findings || []).map((f) => ({ finding: f, impact: "High", evidence_ref: "chunk-001" })),
-      slides: [
-        {
-          slide_number: 1,
-          title: currentCCO?.title || currentSession?.name || "Session Transformation Overview",
-          key_message: currentCCO?.executive_overview || "Grounded transformation output.",
-          body: claims.length > 0 ? claims.slice(0, 3).map((c) => c.text) : ["Grounded claims extracted from source document."],
-          speaker_notes: "Executive presentation slide.",
-          evidence_refs: ["chunk-001"],
-        },
-      ],
-    },
-    verification: {
-      status: "PASSED" as const,
-      grounding_score: 0.99,
-      consistency_score: 0.98,
-      unsupported_claim_count: 0,
-      issues: claims.slice(0, 3).map((c) => ({ claim: c.text, status: "supported" as const, evidence_ref: "chunk-001" })),
-    },
-  };
-
-  const activeArtifact = artifacts[selectedArtifactIdx] || artifacts[0] || mockArtifact;
+  const activeArtifact = artifacts[selectedArtifactIdx] || artifacts[0];
 
   const tabs = [
     { key: "overview", label: "Overview", icon: LayoutDashboard },
@@ -202,6 +205,26 @@ export default function SessionWorkspacePage({
       );
     }
 
+    const handleNavigateToArtifact = async (artifactId: string) => {
+      const existingIdx = artifacts.findIndex((a) => a.artifact_id === artifactId);
+      if (existingIdx !== -1) {
+        setSelectedArtifactIdx(existingIdx);
+      } else {
+        try {
+          const refreshedArts = await fetchSessionArtifacts(sessionId);
+          if (refreshedArts && refreshedArts.length > 0) {
+            setArtifacts(refreshedArts);
+            const newIdx = refreshedArts.findIndex((a) => a.artifact_id === artifactId);
+            if (newIdx !== -1) {
+              setSelectedArtifactIdx(newIdx);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to refresh artifacts on navigation:", e);
+        }
+      }
+    };
+
     return (
       <div className="space-y-4">
         {/* Active Artifact Viewer with unified multi-artifact support */}
@@ -211,6 +234,7 @@ export default function SessionWorkspacePage({
             allArtifacts={artifacts}
             selectedArtifactIdx={selectedArtifactIdx}
             onSelectArtifactIdx={setSelectedArtifactIdx}
+            onNavigateToArtifact={handleNavigateToArtifact}
           />
         )}
       </div>
@@ -227,12 +251,11 @@ export default function SessionWorkspacePage({
               {currentSession?.id || sessionId}
             </span>
             <StatusBadge status={currentSession?.status || "active"} />
-            <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 font-mono">
-              <ShieldCheck className="h-3.5 w-3.5" /> 99% Grounded
-            </span>
-            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-mono font-medium border border-transparent dark:border-slate-700">
-              CCO v2 (Active)
-            </span>
+            {currentCCO?.cco_version_id && (
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-mono font-medium border border-transparent dark:border-slate-700">
+                {currentCCO.cco_version_id}
+              </span>
+            )}
           </div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
             {currentSession?.name || "Incident Response & Operational Transformation Workspace"}
@@ -374,6 +397,15 @@ export default function SessionWorkspacePage({
                     ? `"${currentSession.description}"`
                     : `"Document ingested and grounded into Canonical Content Object (CCO v1) model for session workspace."`}
                 </div>
+                <button
+                  onClick={() => {
+                    setLayoutMode("tabs");
+                    setActiveTab("source");
+                  }}
+                  className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xs text-slate-700 dark:text-slate-200 text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                >
+                  <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" /> View Full Source Document
+                </button>
               </div>
             </div>
           </div>

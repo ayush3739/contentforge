@@ -12,6 +12,12 @@ export default function RecentSessionsTable() {
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthStore();
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     async function loadSessions() {
       try {
@@ -34,7 +40,7 @@ export default function RecentSessionsTable() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">Recent Workspace Sessions</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Active content transformation pipelines for {user?.username || user?.user_id || "you"}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Active content transformation pipelines for {mounted ? (user?.username || user?.user_id || "you") : "you"}</p>
         </div>
         <Link href="/sessions" className="flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-colors">
           View All <ArrowRight className="h-3.5 w-3.5" />

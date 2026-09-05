@@ -45,6 +45,7 @@ async def create_transformation(
         cco_version_id=record["cco_version_id"],
         output_types=payload.output_types,
         user_id=user.user_id,
+        db=db,
     )
 
     return TransformationResponse(
@@ -59,6 +60,8 @@ async def create_transformation(
         detail_level=record["detail_level"],
         objective=record["objective"],
         style=record["style"],
+        custom_instructions=record.get("custom_instructions"),
+        template_configs=record.get("template_configs"),
         status="QUEUED",
     )
 
@@ -87,7 +90,7 @@ async def get_transformation_status(
 ):
     """
     Polling endpoint returning status transitions:
-    QUEUED -> PROCESSING -> GENERATING -> VERIFYING -> RENDERING -> COMPLETED / FAILED / REVIEW_REQUIRED
+    QUEUED -> PLANNING -> GENERATING -> VERIFYING -> RENDERING -> COMPLETED / FAILED
     """
     service = TransformationService(db=db)
     trans = service.get_transformation(id)
@@ -111,42 +114,50 @@ async def stream_transformation_progress(
 ):
     """
     Streams transformation progress as Server-Sent Events (SSE).
-    Emits real-time milestone transitions ('progress', 'complete', 'error') as text/event-stream.
+    Listens to real-time events published via Redis Pub/Sub, with automatic fallback
+    to DB status polling.
     """
     import asyncio
     import json
     from fastapi.responses import StreamingResponse
+    from app.core.redis import subscribe_event_stream
 
     async def event_generator():
         service = TransformationService(db=db)
-        terminal_states = {"COMPLETED", "FAILED", "REVIEW_REQUIRED"}
+        terminal_states = {"COMPLETED", "FAILED"}
 
-        for _ in range(120):  # max ~3 minutes
-            trans = service.get_transformation(id)
-            if not trans:
-                yield f"event: error\ndata: {json.dumps({'message': 'Transformation not found'})}\n\n"
+        # 1. Emit initial state snapshot immediately
+        trans = service.get_transformation(id)
+        if not trans:
+            yield f"event: error\ndata: {json.dumps({'message': 'Transformation not found'})}\n\n"
+            return
+
+        status_val = trans.get("status", "QUEUED")
+        initial_data = {
+            "transformation_id": id,
+            "session_id": trans.get("session_id"),
+            "status": status_val,
+            "progress_percentage": trans.get("progress_percentage", 10),
+            "message": trans.get("message", "Processing transformation..."),
+            "artifacts": trans.get("artifacts", []),
+        }
+        yield f"event: progress\ndata: {json.dumps(initial_data)}\n\n"
+
+        if status_val in terminal_states:
+            event_name = "complete" if status_val == "COMPLETED" else "error"
+            yield f"event: {event_name}\ndata: {json.dumps(initial_data)}\n\n"
+            return
+
+        # 2. Subscribe to real-time Redis Pub/Sub stream (or in-memory fallback)
+        channel = f"transformation:{id}:events"
+        async for msg in subscribe_event_stream(channel, timeout_seconds=180):
+            event_type = msg.get("event", "progress")
+            event_data = msg.get("data", {})
+            yield f"event: {event_type}\ndata: {json.dumps(event_data)}\n\n"
+
+            cur_status = event_data.get("status")
+            if event_type in ("complete", "error") or cur_status in terminal_states:
                 break
-
-            status_val = trans.get("status", "QUEUED")
-            progress_val = trans.get("progress_percentage", 10)
-            message_val = trans.get("message", "Processing transformation...")
-            artifacts_val = trans.get("artifacts", [])
-
-            data = {
-                "transformation_id": id,
-                "session_id": trans.get("session_id"),
-                "status": status_val,
-                "progress_percentage": progress_val,
-                "message": message_val,
-                "artifacts": artifacts_val,
-            }
-            yield f"event: progress\ndata: {json.dumps(data)}\n\n"
-
-            if status_val in terminal_states:
-                yield f"event: complete\ndata: {json.dumps(data)}\n\n"
-                break
-
-            await asyncio.sleep(1.5)
 
     return StreamingResponse(
         event_generator(),

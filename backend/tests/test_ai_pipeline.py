@@ -24,7 +24,7 @@ from app.ai.extraction.deterministic import (
 from app.ai.extraction.semantic import ExtractedClaim, SemanticExtractionResult
 from app.ai.cco.builder import build_cco
 from app.ai.chunking.chunker import chunk_blocks
-from app.ai.embeddings import embed_text, embed_batch
+from app.ai.embeddings import embed_text, embed_batch, embed_image, embed_images_batch
 from app.ai.schemas import PresentationSchema, Slide, ExecutiveSummarySchema, AdvisorySchema
 from app.ai.verification.verifier import verify_artifact, extract_numbers_from_artifact
 
@@ -109,6 +109,33 @@ def test_local_embeddings():
     batch = embed_batch(["Sentence one", "Sentence two"])
     assert len(batch) == 2
     assert len(batch[0]) == 384
+
+
+def test_gemini_image_embeddings():
+    """Verify Gemini image embedding generates 384-dimensional vector strictly for image inputs."""
+    from PIL import Image
+    import io
+    # Create test image
+    img = Image.new("RGB", (32, 32), color="red")
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format="PNG")
+    raw_data = img_bytes.getvalue()
+
+    # Test with raw bytes
+    vec_bytes = embed_image(raw_data, output_dim=384)
+    assert isinstance(vec_bytes, list)
+    assert len(vec_bytes) == 384
+
+    # Test with PIL Image
+    vec_pil = embed_image(img, output_dim=384)
+    assert isinstance(vec_pil, list)
+    assert len(vec_pil) == 384
+
+    # Batch image embedding
+    batch = embed_images_batch([img, raw_data], output_dim=384)
+    assert len(batch) == 2
+    assert len(batch[0]) == 384
+    assert len(batch[1]) == 384
 
 
 def test_cco_construction():

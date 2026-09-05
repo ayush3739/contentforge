@@ -3,11 +3,47 @@ import re
 from typing import Any, Optional
 import pypdf
 
+PROMPT_INJECTION_PATTERNS = [
+    (r"(?i)\b(ignore|disregard|forget|override)\s+(all\s+)?(previous|prior|above|system)\s+(instructions|directives|prompts|rules|commands)\b", "instruction_override"),
+    (r"(?i)\b(you\s+are\s+now|act\s+as|pretend\s+to\s+be)\s+(in\s+)?(an?\s+)?(unrestricted|dan|jailbroken?|developer\s+mode)\b", "persona_hijack"),
+    (r"(?i)\b(system\s+prompt\s+override|reveal\s+(your\s+)?(system\s+prompt|instructions|initial\s+prompt))\b", "prompt_leak"),
+    (r"(?i)\b(bypass|disable)\s+(all\s+)?(safety|security|content)\s+(filters|rules|guardrails|protocols)\b", "safety_bypass"),
+    (r"(?i)\bhidden\s+instruction\s*:\s*\[", "covert_instruction"),
+    (r"(?i)<script\b[^>]*>[\s\S]*?<\/script>", "script_injection"),
+    (r"(?i)javascript:\s*[a-z0-9_]+", "script_injection"),
+]
+
+
+def detect_prompt_injection(content_str: str) -> list[dict[str, Any]]:
+    """
+    Scans document content for prompt injection patterns, adversarial directives,
+    or privilege escalation attempts in untrusted source input.
+    """
+    threats: list[dict[str, Any]] = []
+    if not content_str:
+        return threats
+
+    for pattern, threat_type in PROMPT_INJECTION_PATTERNS:
+        matches = re.finditer(pattern, content_str)
+        for match in matches:
+            start = max(0, match.start() - 30)
+            end = min(len(content_str), match.end() + 30)
+            snippet = content_str[start:end].replace("\n", " ").strip()
+            threats.append({
+                "threat_type": threat_type,
+                "matched_pattern": match.group(0),
+                "snippet": snippet,
+                "start": match.start(),
+                "end": match.end(),
+                "severity": "high" if threat_type in ("instruction_override", "persona_hijack", "safety_bypass") else "medium",
+            })
+    return threats
+
 
 def parse_text(content_str: str) -> list[dict[str, Any]]:
     """
     Parses plain text / markdown into layout blocks.
-    Identifies headings, lists, tables, and paragraphs.
+    Identifies headings, lists, tables, and paragraphs, scanning for prompt injections.
     """
     lines = content_str.splitlines()
     blocks: list[dict[str, Any]] = []
@@ -20,13 +56,19 @@ def parse_text(content_str: str) -> list[dict[str, Any]]:
         if current_paragraph:
             text = " ".join(current_paragraph).strip()
             if text:
+                threats = detect_prompt_injection(text)
+                block_meta: dict[str, Any] = {}
+                if threats:
+                    block_meta["security_threats"] = threats
+                    block_meta["untrusted_flag"] = True
+
                 blocks.append({
                     "block_type": "paragraph",
                     "text": text,
                     "section": current_section,
                     "page": 1,
                     "position": position,
-                    "metadata": {}
+                    "metadata": block_meta
                 })
                 position += 1
             current_paragraph.clear()
@@ -195,18 +237,31 @@ def parse_docx(content_bytes: bytes) -> list[dict[str, Any]]:
 def parse_document(content: bytes | str, filename: str = "", mime_type: str = "text/plain") -> list[dict[str, Any]]:
     """
     Main ingestion parser dispatcher supporting PDF, DOCX, TXT, MD.
+    Scans all extracted layout blocks for security threats and prompt injections.
     """
     if isinstance(content, str):
-        return parse_text(content)
-
-    if mime_type == "application/pdf" or filename.lower().endswith(".pdf"):
-        return parse_pdf(content)
+        blocks = parse_text(content)
+    elif mime_type == "application/pdf" or filename.lower().endswith(".pdf"):
+        blocks = parse_pdf(content)
     elif "word" in mime_type or filename.lower().endswith(".docx"):
-        return parse_docx(content)
+        blocks = parse_docx(content)
     else:
         try:
             text_content = content.decode("utf-8")
         except UnicodeDecodeError:
             text_content = content.decode("latin-1")
-        return parse_text(text_content)
+        blocks = parse_text(text_content)
+
+    # Post-process all blocks to ensure prompt injection detection across all formats
+    for block in blocks:
+        block_text = block.get("text", "")
+        if block_text and "security_threats" not in block.get("metadata", {}):
+            threats = detect_prompt_injection(block_text)
+            if threats:
+                if "metadata" not in block:
+                    block["metadata"] = {}
+                block["metadata"]["security_threats"] = threats
+                block["metadata"]["untrusted_flag"] = True
+
+    return blocks
 

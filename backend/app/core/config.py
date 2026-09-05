@@ -1,4 +1,5 @@
 from typing import Optional
+from pydantic import Field, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,18 +28,95 @@ class Settings(BaseSettings):
             url = url.replace("postgresql://", "postgresql+psycopg://", 1)
         return url
 
-    # Redis (Job Queue & Cache / Upstash)
-    REDIS_URL: str = "redis://localhost:6379/0"
+    # Redis / Upstash (Job Queue & Cache / Upstash)
+    REDIS_URL: Optional[str] = "redis://localhost:6379/0"
+    UPSTASH_REDIS_URL: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("UPSTASH_REDIS_URL", "UPSTASH_URL"),
+    )
+    UPSTASH_REDIS_REST_URL: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("UPSTASH_REDIS_REST_URL", "UPSTASH_REST_URL", "KV_REST_API_URL"),
+    )
+    UPSTASH_REDIS_REST_TOKEN: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("UPSTASH_REDIS_REST_TOKEN", "UPSTASH_REST_TOKEN", "KV_REST_API_TOKEN"),
+    )
 
-    # AI & LLM (P1) — Provider priority: Gemini > Groq > OpenAI
+    @property
+    def effective_redis_url(self) -> str:
+        """
+        Resolves the active Redis connection URL, prioritizing Upstash:
+        1. UPSTASH_REDIS_URL if explicitly provided
+        2. Derived rediss:// URL from UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
+        3. REDIS_URL if provided
+        4. Localhost fallback
+        """
+        if self.UPSTASH_REDIS_URL:
+            return self.UPSTASH_REDIS_URL
+
+        if self.UPSTASH_REDIS_REST_URL and self.UPSTASH_REDIS_REST_TOKEN:
+            host = self.UPSTASH_REDIS_REST_URL.replace("https://", "").replace("http://", "").strip("/")
+            return f"rediss://default:{self.UPSTASH_REDIS_REST_TOKEN}@{host}:6379"
+
+        if self.REDIS_URL:
+            return self.REDIS_URL
+
+        return "redis://localhost:6379/0"
+
+    # AI & LLM (P1) — Provider priority: Groq > Gemini > Grok > OpenAI
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-3.6-flash"
     GROQ_API_KEY: Optional[str] = None
+    GROQ_API_KEY_SECOND: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "GROQ_API_KEY_SECOND",
+            "GROQ_API_KEY_2",
+            "GROQ_SECONDARY_API_KEY",
+            "GROQ_FALLBACK_API_KEY",
+        ),
+    )
+    GROQ_API_KEYS: Optional[str] = None
+
+    @property
+    def groq_api_keys(self) -> list[str]:
+        """Returns all configured Groq API keys as a deduplicated list."""
+        keys: list[str] = []
+        for raw in (self.GROQ_API_KEY, self.GROQ_API_KEY_SECOND, self.GROQ_API_KEYS):
+            if raw:
+                for k in raw.split(","):
+                    k = k.strip()
+                    if k and k not in keys:
+                        keys.append(k)
+        return keys
+
     GROQ_ROUTER_MODEL: str = "openai/gpt-oss-20b"
     GROQ_GENERATION_MODEL: str = "openai/gpt-oss-120b"
+    GROQ_FALLBACK_MODEL: str = "openai/gpt-oss-20b"
+
+    GROQ_SECOND_FALLBACK_MODEL: str = "openai/gpt-oss-120b"
+    # xAI Grok configuration
+    GROK_API_KEY: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("GROK_API_KEY", "XAI_API_KEY"),
+    )
+    GROK_MODEL: str = Field(
+        default="grok-2-latest",
+        validation_alias=AliasChoices("GROK_MODEL", "XAI_MODEL"),
+    )
+    GROK_FALLBACK_MODEL: Optional[str] = Field(
+        default="grok-2",
+        validation_alias=AliasChoices("GROK_FALLBACK_MODEL", "XAI_FALLBACK_MODEL"),
+    )
+    GROK_SECOND_FALLBACK_MODEL: Optional[str] = Field(
+        default="grok-beta",
+        validation_alias=AliasChoices("GROK_SECOND_FALLBACK_MODEL", "XAI_SECOND_FALLBACK_MODEL"),
+    )
+
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4o"
-    LLM_PROVIDER: str = "groq"  # groq | gemini | openai
+    LLM_PROVIDER: str = "groq"  # groq | gemini | grok | openai
 
     # Embeddings (P1) — Local sentence-transformers, zero-cost & offline
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"

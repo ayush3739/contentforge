@@ -46,12 +46,33 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"[MODEL] Error pre-loading embedding model: {e}")
 
+    # 3. Connect & warm up Redis connection at server boot
+    logger.info("[REDIS] Connecting and warming up Redis connection pool at server startup...")
+    try:
+        from app.core.redis import get_sync_redis_client, get_async_redis_client
+        sync_client = get_sync_redis_client()
+        pong = sync_client.ping()
+        async_client = get_async_redis_client()
+        await async_client.ping()
+        logger.info(f"[REDIS] Redis connection successfully established and ready at startup! (pong={pong})")
+    except Exception as e:
+        logger.warning(f"[REDIS] Redis startup connection notice: {e} (resilient in-memory event bus active)")
+
     logger.info("[READY] Server accepting API requests at http://localhost:8000")
     logger.info("[DOCS] Swagger API Documentation available at http://localhost:8000/docs")
 
     yield
 
     logger.info("[SHUTDOWN] ContentForge AI Backend shutting down...")
+    try:
+        from app.core.redis import _redis_async_client, _redis_sync_client
+        if _redis_async_client is not None:
+            await _redis_async_client.aclose()
+        if _redis_sync_client is not None:
+            _redis_sync_client.close()
+        logger.info("[REDIS] Redis connections closed cleanly.")
+    except Exception as e:
+        logger.debug(f"[REDIS] Error closing Redis on shutdown: {e}")
 
 
 app = FastAPI(

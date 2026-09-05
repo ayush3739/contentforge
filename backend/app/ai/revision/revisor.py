@@ -68,6 +68,7 @@ async def revise_artifact(
                 messages=revision_prompt,
                 response_schema=schema,
                 temperature=0.1,
+                max_tokens=4096,
             )
             validated = schema.model_validate(revised_data)
             current_artifact = validated.model_dump()
