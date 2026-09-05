@@ -1,51 +1,119 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { SecurityEventItem } from "@/types/admin";
-import { ShieldAlert } from "lucide-react";
+import { fetchAdminSecurityEvents } from "@/lib/api";
+import { ShieldAlert, RefreshCw, CheckCircle } from "lucide-react";
 
 export default function SecurityEventTable() {
-  const events: SecurityEventItem[] = [
-    { id: "SEC-101", event_type: "PROMPT_INJECTION_DETECTED", severity: "high", source_ip: "192.168.1.45", payload_summary: "Attempted instruction override in prompt input", created_at: "10:15:00" },
-    { id: "SEC-102", event_type: "UNAUTHORIZED_ACCESS", severity: "medium", source_ip: "10.0.4.12", payload_summary: "Analyst role attempted admin endpoint POST /admin/users", created_at: "09:40:22" },
-  ];
+  const [events, setEvents] = useState<SecurityEventItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadEvents = async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchAdminSecurityEvents(100);
+      if (Array.isArray(data)) {
+        setEvents(data);
+      }
+    } catch (err) {
+      console.error("Failed to load security events:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  const getSeverityBadge = (severity: string) => {
+    switch (severity.toLowerCase()) {
+      case "critical":
+        return "bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-800";
+      case "high":
+        return "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800";
+      case "medium":
+        return "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-800";
+      default:
+        return "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700";
+    }
+  };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-xs">
-      <div>
-        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <ShieldAlert className="h-4 w-4 text-rose-600" /> Security Threat & Injection Log
-        </h3>
-        <p className="text-xs text-slate-500 mt-0.5">Persisted cybersecurity events, prompt injections, and RBAC violations</p>
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4 shadow-xs transition-colors duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" /> Security Threat & Prompt Injection Log
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold">
+              {events.length} Incident Records
+            </span>
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Persisted cybersecurity events, prompt injection detections, and guardrail enforcement records</p>
+        </div>
+        <button
+          onClick={loadEvents}
+          disabled={isLoading}
+          className="p-2 self-start sm:self-auto rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+          title="Refresh Security Events"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+        </button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
         <table className="w-full text-left text-xs font-mono">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-500 bg-slate-50/60 font-sans">
-              <th className="py-3 px-3 font-bold uppercase text-[10px] tracking-wider">Timestamp</th>
-              <th className="py-3 px-3 font-bold uppercase text-[10px] tracking-wider">Event Type</th>
-              <th className="py-3 px-3 font-bold uppercase text-[10px] tracking-wider">Severity</th>
-              <th className="py-3 px-3 font-bold uppercase text-[10px] tracking-wider">Source IP</th>
-              <th className="py-3 px-3 font-bold uppercase text-[10px] tracking-wider">Payload Summary</th>
+            <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-50/80 dark:bg-slate-800/60 font-sans">
+              <th className="py-3 px-3.5 font-bold uppercase text-[10px] tracking-wider">Timestamp</th>
+              <th className="py-3 px-3.5 font-bold uppercase text-[10px] tracking-wider">Event Type</th>
+              <th className="py-3 px-3.5 font-bold uppercase text-[10px] tracking-wider">Severity</th>
+              <th className="py-3 px-3.5 font-bold uppercase text-[10px] tracking-wider">Source IP</th>
+              <th className="py-3 px-3.5 font-bold uppercase text-[10px] tracking-wider">Payload Summary</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {events.map((e) => (
-              <tr key={e.id} className="hover:bg-slate-50/80 transition-colors">
-                <td className="py-3.5 px-3 text-slate-500">{e.created_at}</td>
-                <td className="py-3.5 px-3 font-bold text-rose-700">{e.event_type}</td>
-                <td className="py-3.5 px-3 font-sans">
-                  <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold uppercase">
-                    {e.severity}
-                  </span>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-900">
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-xs text-slate-500 font-sans font-medium">
+                  Loading real-time security events from database...
                 </td>
-                <td className="py-3.5 px-3 text-slate-700">{e.source_ip}</td>
-                <td className="py-3.5 px-3 text-slate-600 font-sans">{e.payload_summary}</td>
               </tr>
-            ))}
+            ) : events.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-xs text-slate-500 font-sans font-medium">
+                  <div className="flex flex-col items-center gap-2">
+                    <CheckCircle className="h-6 w-6 text-emerald-500" />
+                    <span>No security threats or injection attempts currently detected. Sentinel guardrails nominal.</span>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              events.map((e) => {
+                const formattedTime = e.created_at
+                  ? new Date(e.created_at).toLocaleString()
+                  : "Recorded";
+
+                return (
+                  <tr key={e.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="py-3.5 px-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap text-[11px]">{formattedTime}</td>
+                    <td className="py-3.5 px-3.5 font-bold text-rose-700 dark:text-rose-400">{e.event_type}</td>
+                    <td className="py-3.5 px-3.5 font-sans">
+                      <span className={`px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase ${getSeverityBadge(e.severity)}`}>
+                        {e.severity}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-3.5 text-slate-700 dark:text-slate-300">{e.source_ip || "internal"}</td>
+                    <td className="py-3.5 px-3.5 text-slate-600 dark:text-slate-300 font-sans">{e.payload_summary}</td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
     </div>
   );
 }
+

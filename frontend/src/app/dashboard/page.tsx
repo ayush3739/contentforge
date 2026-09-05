@@ -3,7 +3,6 @@
 import Link from "next/link";
 import MetricCards from "@/components/dashboard/MetricCards";
 import RecentSessionsTable from "@/components/dashboard/RecentSessionsTable";
-import RecentReviewList from "@/components/dashboard/RecentReviewList";
 import { PlusCircle, Sparkles, ShieldCheck } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 
@@ -52,12 +51,9 @@ export default function DashboardPage() {
       <MetricCards />
 
       {/* Main Grid Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6">
+        <div className="w-full">
           <RecentSessionsTable />
-        </div>
-        <div className="lg:col-span-1">
-          <RecentReviewList />
         </div>
       </div>
     </div>

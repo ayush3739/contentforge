@@ -118,6 +118,7 @@ async def plan_transformation_async(
             messages=messages,
             response_schema=TransformationPlan,
             temperature=0.2,
+            max_tokens=4096,
             model=model
         )
         plan = TransformationPlan.model_validate(data)

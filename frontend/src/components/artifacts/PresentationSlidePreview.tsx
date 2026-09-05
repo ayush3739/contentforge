@@ -13,7 +13,15 @@ import {
   Presentation,
 } from "lucide-react";
 
-export default function PresentationSlidePreview({ slides }: { slides: SlideData[] }) {
+interface PresentationSlidePreviewProps {
+  slides: SlideData[];
+  onInspectEvidence?: (ref: string, context?: { title?: string; slideNumber?: number }) => void;
+}
+
+export default function PresentationSlidePreview({
+  slides,
+  onInspectEvidence,
+}: PresentationSlidePreviewProps) {
   const { selectedSlideIndex, setSelectedSlideIndex } = useSessionStore();
   const [showNotes, setShowNotes] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -141,9 +149,15 @@ export default function PresentationSlidePreview({ slides }: { slides: SlideData
                 <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                   <span>Source CCO:</span>
                   {currentSlide.evidence_refs.map((ref, idx) => (
-                    <span key={idx} className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                      {ref}
-                    </span>
+                    <button
+                      key={idx}
+                      onClick={() => onInspectEvidence?.(ref, { title: currentSlide.title, slideNumber: selectedSlideIndex + 1 })}
+                      className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors cursor-pointer flex items-center gap-1 font-semibold"
+                      title="Inspect Grounding Evidence (Two-Click Inspector)"
+                    >
+                      <ShieldCheck className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                      <span>{ref}</span>
+                    </button>
                   ))}
                 </div>
               )}

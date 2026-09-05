@@ -1,3 +1,5 @@
+import { DocumentItem } from "./document";
+
 export interface SessionItem {
   id: string;
   name: string;
@@ -6,6 +8,8 @@ export interface SessionItem {
   status: "active" | "archived" | "completed" | "processing";
   document_count: number;
   transformation_count: number;
+  documents?: DocumentItem[];
+  transformation_requests?: any[];
   created_at?: string;
   updated_at?: string;
 }

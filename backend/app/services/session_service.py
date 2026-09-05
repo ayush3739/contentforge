@@ -93,11 +93,20 @@ class SessionService:
         record_audit_event(self.db, user_id=actual_user_id, action="SESSION_CREATED", resource_type="session", resource_id=session_id)
         return sess_data
 
-    def get_session(self, session_id: str) -> Optional[dict]:
+    def get_session(
+        self,
+        session_id: str,
+        user_id: Optional[str] = None,
+        role: Optional[str] = None,
+    ) -> Optional[dict]:
         if self.db:
             try:
                 db_session = self.db.query(Session).filter(Session.id == session_id).first()
                 if db_session:
+                    if user_id and role != "admin" and db_session.created_by and db_session.created_by != user_id:
+                        from app.core.errors import APIError
+                        raise APIError("FORBIDDEN", "You do not own this session.", status_code=403)
+
                     docs = [
                         {
                             "id": d.id,
@@ -138,8 +147,14 @@ class SessionService:
                         "updated_at": db_session.updated_at,
                     }
             except Exception as e:
+                if "FORBIDDEN" in str(e) or getattr(e, "status_code", None) == 403:
+                    raise
                 logger.error(f"[SESSION] Database query failed for session {session_id}: {e}")
-        return self._in_memory_sessions.get(session_id)
+        sess = self._in_memory_sessions.get(session_id)
+        if sess and user_id and role != "admin" and sess.get("created_by") and sess.get("created_by") != user_id:
+            from app.core.errors import APIError
+            raise APIError("FORBIDDEN", "You do not own this session.", status_code=403)
+        return sess
 
     def list_sessions(self, user_id: Optional[str] = None) -> list[dict]:
         if self.db:
@@ -168,8 +183,14 @@ class SessionService:
             return [s for s in items if s.get("created_by") == user_id]
         return items
 
-    def update_session(self, session_id: str, payload: SessionUpdate, user_id: str) -> Optional[dict]:
-        sess = self.get_session(session_id)
+    def update_session(
+        self,
+        session_id: str,
+        payload: SessionUpdate,
+        user_id: str,
+        role: Optional[str] = None,
+    ) -> Optional[dict]:
+        sess = self.get_session(session_id, user_id=user_id, role=role)
         if not sess:
             return None
         if payload.name:
@@ -181,12 +202,17 @@ class SessionService:
             try:
                 db_session = self.db.query(Session).filter(Session.id == session_id).first()
                 if db_session:
+                    if role != "admin" and db_session.created_by and db_session.created_by != user_id:
+                        from app.core.errors import APIError
+                        raise APIError("FORBIDDEN", "You do not own this session.", status_code=403)
                     if payload.name:
                         db_session.name = payload.name
                     if payload.status:
                         db_session.status = payload.status
                     self.db.commit()
-            except Exception:
+            except Exception as e:
+                if getattr(e, "status_code", None) == 403:
+                    raise
                 if self.db:
                     self.db.rollback()
 
@@ -194,14 +220,22 @@ class SessionService:
         record_audit_event(self.db, user_id=user_id, action="SESSION_UPDATED", resource_type="session", resource_id=session_id)
         return sess
 
-    def delete_session(self, session_id: str, user_id: str) -> bool:
+    def delete_session(self, session_id: str, user_id: str, role: Optional[str] = None) -> bool:
+        sess = self.get_session(session_id, user_id=user_id, role=role)
+        if not sess:
+            return False
         if self.db:
             try:
                 db_session = self.db.query(Session).filter(Session.id == session_id).first()
                 if db_session:
+                    if role != "admin" and db_session.created_by and db_session.created_by != user_id:
+                        from app.core.errors import APIError
+                        raise APIError("FORBIDDEN", "You do not own this session.", status_code=403)
                     self.db.delete(db_session)
                     self.db.commit()
-            except Exception:
+            except Exception as e:
+                if getattr(e, "status_code", None) == 403:
+                    raise
                 if self.db:
                     self.db.rollback()
         if session_id in self._in_memory_sessions:

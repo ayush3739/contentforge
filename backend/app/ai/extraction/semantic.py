@@ -57,6 +57,7 @@ async def extract_semantic_data(text_content: str, provider_name: Optional[str] 
             messages=messages,
             response_schema=SemanticExtractionResult,
             temperature=0.1,
+            max_tokens=4096,
             model=getattr(settings, "GROQ_ROUTER_MODEL", "openai/gpt-oss-20b") if provider_name == "groq" or settings.LLM_PROVIDER.lower() == "groq" else None
         )
         return SemanticExtractionResult.model_validate(data)
@@ -69,6 +70,7 @@ async def extract_semantic_data(text_content: str, provider_name: Optional[str] 
                     messages=messages,
                     response_schema=SemanticExtractionResult,
                     temperature=0.1,
+                    max_tokens=4096,
                     model=getattr(settings, "GROQ_ROUTER_MODEL", "openai/gpt-oss-20b")
                 )
                 return SemanticExtractionResult.model_validate(data)

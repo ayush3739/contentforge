@@ -1,9 +1,9 @@
 "use client";
-
+import React, { useState } from "react";
 import { useTransformationStore } from "@/store/useTransformationStore";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useUIStore } from "@/store/useUIStore";
-import { OutputType } from "@/types/transformation";
+import { OutputType, ArtifactTemplateConfig } from "@/types/transformation";
 import { useRouter, useParams } from "next/navigation";
 import { submitTransformation } from "@/lib/api";
 import {
@@ -15,6 +15,10 @@ import {
   Share2,
   CheckCircle2,
   Sparkles,
+  LayoutTemplate,
+  Palette,
+  ShieldCheck,
+  Layers,
 } from "lucide-react";
 
 interface TransformationPlannerProps {
@@ -30,6 +34,54 @@ export default function TransformationPlanner({ sessionId: sessionIdProp }: Tran
   const { selectedOutputTypes, toggleOutputType, params, setParams, socialConfig, setSocialConfig } =
     useTransformationStore();
   const { addToast } = useUIStore();
+
+  const [templateConfigs, setTemplateConfigs] = useState<Record<string, ArtifactTemplateConfig>>({
+    presentation: {
+      artifact_type: "presentation",
+      template_id: "executive_briefing",
+      brand_theme: "executive_blue",
+      classification: "UNCLASSIFIED // TLP:CLEAR",
+      include_evidence_refs: true,
+      include_verification_footer: true,
+    },
+    executive_summary: {
+      artifact_type: "executive_summary",
+      template_id: "executive_summary",
+      brand_theme: "executive_blue",
+      classification: "UNCLASSIFIED // TLP:CLEAR",
+      include_evidence_refs: true,
+      include_verification_footer: true,
+    },
+    advisory: {
+      artifact_type: "advisory",
+      template_id: "security_advisory",
+      brand_theme: "threat_dark",
+      classification: "UNCLASSIFIED // TLP:CLEAR",
+      include_evidence_refs: true,
+      include_verification_footer: true,
+    },
+    infographic: {
+      artifact_type: "infographic",
+      template_id: "executive_snapshot",
+      brand_theme: "executive_blue",
+      classification: "UNCLASSIFIED // TLP:CLEAR",
+      include_evidence_refs: true,
+      include_verification_footer: true,
+    },
+  });
+
+  const updateTemplateConfig = (type: string, updates: Partial<ArtifactTemplateConfig>) => {
+    setTemplateConfigs((prev) => ({
+      ...prev,
+      [type]: {
+        ...(prev[type] || {
+          artifact_type: type as OutputType,
+          template_id: type === "advisory" ? "security_advisory" : type === "presentation" ? "executive_briefing" : "executive_summary",
+        }),
+        ...updates,
+      },
+    }));
+  };
 
   const outputCards: { type: OutputType; title: string; desc: string; icon: any }[] = [
     { type: "presentation", title: "Slide Presentation", desc: "Executive slide deck with speaker notes & citations (PPTX)", icon: Presentation },
@@ -66,11 +118,16 @@ export default function TransformationPlanner({ sessionId: sessionIdProp }: Tran
     });
 
     try {
+      const activeTplConfigs = Object.fromEntries(
+        Object.entries(templateConfigs).filter(([k]) => selectedOutputTypes.includes(k as OutputType))
+      );
+
       const payload = {
         session_id: activeSessionId,
         output_types: selectedOutputTypes,
         ...params,
         ...(selectedOutputTypes.includes("social_post") ? { social_config: socialConfig } : {}),
+        template_configs: activeTplConfigs,
       };
 
       const res = await submitTransformation(payload);
@@ -199,6 +256,241 @@ export default function TransformationPlanner({ sessionId: sessionIdProp }: Tran
                   <option value="thread">Multi-Card / Thread Format</option>
                 </select>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Controlled Template Configuration Section (WP-5A) */}
+        {selectedOutputTypes.some((t) => ["presentation", "executive_summary", "advisory", "infographic"].includes(t)) && (
+          <div className="p-5 rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/40 dark:from-indigo-950/30 dark:via-slate-900 dark:to-blue-950/20 space-y-5 shadow-xs animate-in slide-in-from-top-2 duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 dark:border-indigo-900/50 pb-3">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 dark:text-indigo-300 flex items-center gap-2">
+                  <LayoutTemplate className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  Controlled Template &amp; Styling Configurator
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Select institutional layout standards, visual color palettes, and security classification markings.
+                </p>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 w-fit">
+                WP-5A Controlled Specs
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Presentation Template Card */}
+              {selectedOutputTypes.includes("presentation") && (
+                <div className="p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-white/80 dark:bg-slate-900/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <Presentation className="h-3.5 w-3.5 text-blue-600" />
+                      Slide Deck Template (PPTX)
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 uppercase">16:9 Widescreen</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Layout Standard</label>
+                    <select
+                      value={templateConfigs.presentation?.template_id || "executive_briefing"}
+                      onChange={(e) => updateTemplateConfig("presentation", { template_id: e.target.value })}
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="executive_briefing">Executive Strategic Briefing (KPI Cards, Strategic Highlights)</option>
+                      <option value="incident_investigation">Incident Investigation Deck (Threat Dark, Timeline, IoC Matrix)</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Visual Theme</label>
+                      <select
+                        value={templateConfigs.presentation?.brand_theme || "executive_blue"}
+                        onChange={(e) => updateTemplateConfig("presentation", { brand_theme: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1.5 text-xs text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="executive_blue">Executive Blue</option>
+                        <option value="threat_dark">Threat Dark</option>
+                        <option value="modern_minimal">Modern Minimal</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Classification Banner</label>
+                      <select
+                        value={templateConfigs.presentation?.classification || "UNCLASSIFIED // TLP:CLEAR"}
+                        onChange={(e) => updateTemplateConfig("presentation", { classification: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1.5 text-xs text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="UNCLASSIFIED // TLP:CLEAR">UNCLASSIFIED // TLP:CLEAR</option>
+                        <option value="CONFIDENTIAL // INTERNAL USE ONLY">CONFIDENTIAL // INTERNAL</option>
+                        <option value="RESTRICTED // LAW ENFORCEMENT SENSITIVE">RESTRICTED // SENSITIVE</option>
+                        <option value="TOP SECRET // NOFORN">TOP SECRET // NOFORN</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Executive Summary Template Card */}
+              {selectedOutputTypes.includes("executive_summary") && (
+                <div className="p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-white/80 dark:bg-slate-900/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5 text-indigo-600" />
+                      Executive Summary Template (DOCX)
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 uppercase">Document Control</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Document Standard</label>
+                    <select
+                      value={templateConfigs.executive_summary?.template_id || "executive_summary"}
+                      onChange={(e) => updateTemplateConfig("executive_summary", { template_id: e.target.value })}
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="executive_summary">Executive Decision Brief (Document Control Box, Impact Table, Actions)</option>
+                      <option value="security_advisory">Technical Advisory Format (CVSS Threat Callout, Systems Grid)</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Visual Theme</label>
+                      <select
+                        value={templateConfigs.executive_summary?.brand_theme || "executive_blue"}
+                        onChange={(e) => updateTemplateConfig("executive_summary", { brand_theme: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1.5 text-xs text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="executive_blue">Executive Blue</option>
+                        <option value="threat_dark">Threat Dark</option>
+                        <option value="modern_minimal">Modern Minimal</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Classification Banner</label>
+                      <select
+                        value={templateConfigs.executive_summary?.classification || "UNCLASSIFIED // TLP:CLEAR"}
+                        onChange={(e) => updateTemplateConfig("executive_summary", { classification: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1.5 text-xs text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="UNCLASSIFIED // TLP:CLEAR">UNCLASSIFIED // TLP:CLEAR</option>
+                        <option value="CONFIDENTIAL // INTERNAL USE ONLY">CONFIDENTIAL // INTERNAL</option>
+                        <option value="RESTRICTED // LAW ENFORCEMENT SENSITIVE">RESTRICTED // SENSITIVE</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Security Advisory Template Card */}
+              {selectedOutputTypes.includes("advisory") && (
+                <div className="p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-white/80 dark:bg-slate-900/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <ShieldAlert className="h-3.5 w-3.5 text-rose-600" />
+                      Security Advisory Template (DOCX)
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 uppercase">CVSS Threat Spec</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Advisory Standard</label>
+                    <select
+                      value={templateConfigs.advisory?.template_id || "security_advisory"}
+                      onChange={(e) => updateTemplateConfig("advisory", { template_id: e.target.value })}
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="security_advisory">Technical Security Advisory (CVSS Header, Affected Systems, IoC Table)</option>
+                      <option value="executive_summary">Executive Summary Format (Document Control &amp; Actions)</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Visual Theme</label>
+                      <select
+                        value={templateConfigs.advisory?.brand_theme || "threat_dark"}
+                        onChange={(e) => updateTemplateConfig("advisory", { brand_theme: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1.5 text-xs text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="threat_dark">Threat Dark</option>
+                        <option value="executive_blue">Executive Blue</option>
+                        <option value="modern_minimal">Modern Minimal</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Classification Banner</label>
+                      <select
+                        value={templateConfigs.advisory?.classification || "UNCLASSIFIED // TLP:CLEAR"}
+                        onChange={(e) => updateTemplateConfig("advisory", { classification: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1.5 text-xs text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="UNCLASSIFIED // TLP:CLEAR">UNCLASSIFIED // TLP:CLEAR</option>
+                        <option value="CONFIDENTIAL // INTERNAL USE ONLY">CONFIDENTIAL // INTERNAL</option>
+                        <option value="RESTRICTED // LAW ENFORCEMENT SENSITIVE">RESTRICTED // SENSITIVE</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Infographic Template Card */}
+              {selectedOutputTypes.includes("infographic") && (
+                <div className="p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-white/80 dark:bg-slate-900/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <BarChart3 className="h-3.5 w-3.5 text-emerald-600" />
+                      Visual Infographic Template (SVG)
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 uppercase">Vector SVG</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Infographic Standard</label>
+                    <select
+                      value={templateConfigs.infographic?.template_id || "executive_snapshot"}
+                      onChange={(e) => updateTemplateConfig("infographic", { template_id: e.target.value })}
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="executive_snapshot">Executive Strategic Snapshot (KPI Cards, Metric Progress Bars)</option>
+                      <option value="incident_brief">Incident Intelligence Snapshot (Chronology Timeline, Impact Gauges)</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Visual Theme</label>
+                      <select
+                        value={templateConfigs.infographic?.brand_theme || "executive_blue"}
+                        onChange={(e) => updateTemplateConfig("infographic", { brand_theme: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1.5 text-xs text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="executive_blue">Executive Blue</option>
+                        <option value="threat_dark">Threat Dark</option>
+                        <option value="modern_minimal">Modern Minimal</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Classification Banner</label>
+                      <select
+                        value={templateConfigs.infographic?.classification || "UNCLASSIFIED // TLP:CLEAR"}
+                        onChange={(e) => updateTemplateConfig("infographic", { classification: e.target.value })}
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1.5 text-xs text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="UNCLASSIFIED // TLP:CLEAR">UNCLASSIFIED // TLP:CLEAR</option>
+                        <option value="CONFIDENTIAL // INTERNAL USE ONLY">CONFIDENTIAL // INTERNAL</option>
+                        <option value="RESTRICTED // LAW ENFORCEMENT SENSITIVE">RESTRICTED // SENSITIVE</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -26,8 +26,10 @@ ALLOWED_MIME_TYPES = {
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "text/plain",
     "text/markdown",
+    "application/octet-stream",
 }
 
+SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".txt", ".md"}
 MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB limit
 
 
@@ -39,6 +41,51 @@ class DocumentService:
         self.db = db
         self.storage = get_storage_provider()
 
+    def _validate_file(self, filename: str, content: bytes, mime_type: str):
+        if not content or len(content) == 0:
+            raise APIError("EMPTY_FILE", "Uploaded document file is empty.", status_code=400)
+
+        if len(content) > MAX_FILE_SIZE_BYTES:
+            record_security_event(self.db, "FILE_SIZE_EXCEEDED", severity="medium", details={"filename": filename, "size": len(content)})
+            raise APIError("FILE_TOO_LARGE", f"Uploaded file exceeds maximum limit of {MAX_FILE_SIZE_BYTES // (1024 * 1024)} MB.", status_code=400)
+
+        ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        if ext not in SUPPORTED_EXTENSIONS and mime_type not in ALLOWED_MIME_TYPES:
+            record_security_event(self.db, "UNSUPPORTED_FILE_TYPE", severity="low", details={"filename": filename, "mime_type": mime_type})
+            raise APIError("UNSUPPORTED_FILE_TYPE", f"File type '{ext or mime_type}' is not supported. Allowed formats: PDF, DOCX, PPTX, TXT, MD.", status_code=400)
+
+    def assert_owner(self, doc_id: str, user_id: str, role: Optional[str] = None):
+        if not self.db:
+            doc = self._in_memory_docs.get(doc_id)
+            if not doc:
+                raise APIError("DOCUMENT_NOT_FOUND", f"Document with ID '{doc_id}' does not exist.", status_code=404)
+            if role == "admin":
+                return doc
+            is_owner = (doc.get("created_by") == user_id)
+            if not is_owner and doc.get("session_id"):
+                from app.services.session_service import SessionService
+                sess = SessionService._in_memory_sessions.get(doc["session_id"])
+                if sess and sess.get("created_by") == user_id:
+                    is_owner = True
+            if not is_owner:
+                raise APIError("FORBIDDEN", "You do not have permission to access this document.", status_code=403)
+            return doc
+
+        db_doc = self.db.query(Document).filter(Document.id == doc_id).first()
+        if not db_doc:
+            raise APIError("DOCUMENT_NOT_FOUND", f"Document with ID '{doc_id}' does not exist.", status_code=404)
+        if role == "admin":
+            return db_doc
+        is_owner = (db_doc.created_by == user_id)
+        if not is_owner and db_doc.session_id:
+            from app.models.session import Session as WorkspaceSession
+            sess = self.db.query(WorkspaceSession).filter(WorkspaceSession.id == db_doc.session_id).first()
+            if sess and sess.created_by == user_id:
+                is_owner = True
+        if not is_owner:
+            raise APIError("FORBIDDEN", "You do not have permission to access this document.", status_code=403)
+        return db_doc
+
     async def upload_document(
         self,
         session_id: str,
@@ -46,10 +93,21 @@ class DocumentService:
         content: bytes,
         mime_type: str,
         user_id: str,
+        role: Optional[str] = None,
     ) -> dict:
-        if len(content) > MAX_FILE_SIZE_BYTES:
-            record_security_event(self.db, "FILE_SIZE_EXCEEDED", severity="medium", details={"filename": filename})
-            raise APIError("FILE_TOO_LARGE", "Uploaded file exceeds maximum limit of 50 MB.", status_code=400)
+        self._validate_file(filename, content, mime_type)
+
+        if session_id:
+            if self.db:
+                from app.models.session import Session as WorkspaceSession
+                sess = self.db.query(WorkspaceSession).filter(WorkspaceSession.id == session_id).first()
+                if sess and sess.created_by and sess.created_by != user_id and role != "admin":
+                    raise APIError("FORBIDDEN", "You do not have permission to upload documents to this session workspace.", status_code=403)
+            else:
+                from app.services.session_service import SessionService
+                sess = SessionService._in_memory_sessions.get(session_id)
+                if sess and sess.get("created_by") and sess.get("created_by") != user_id and role != "admin":
+                    raise APIError("FORBIDDEN", "You do not have permission to upload documents to this session workspace.", status_code=403)
 
         checksum = hashlib.sha256(content).hexdigest()
         doc_id = f"DOC-{uuid.uuid4().hex[:8].upper()}"
@@ -67,7 +125,7 @@ class DocumentService:
                     version=1,
                     checksum=checksum,
                     storage_key=storage_key,
-                    status="processing",
+                    status="UPLOADED",
                     created_by=user_id,
                 )
                 self.db.add(db_doc)
@@ -93,7 +151,7 @@ class DocumentService:
             "version": 1,
             "checksum": checksum,
             "storage_key": storage_key,
-            "status": "processing",
+            "status": "UPLOADED",
             "created_by": user_id,
         }
         self._in_memory_docs[doc_id] = doc_data
@@ -107,14 +165,19 @@ class DocumentService:
         content: bytes,
         mime_type: str,
         user_id: str,
+        role: Optional[str] = None,
     ):
         import json
         from fastapi.responses import StreamingResponse
         from app.jobs.orchestrator import IngestionJobOrchestrator
 
-        if len(content) > MAX_FILE_SIZE_BYTES:
-            record_security_event(self.db, "FILE_SIZE_EXCEEDED", severity="medium", details={"filename": filename})
-            raise APIError("FILE_TOO_LARGE", "Uploaded file exceeds maximum limit of 50 MB.", status_code=400)
+        self._validate_file(filename, content, mime_type)
+
+        if self.db and session_id:
+            from app.models.session import Session as WorkspaceSession
+            sess = self.db.query(WorkspaceSession).filter(WorkspaceSession.id == session_id).first()
+            if sess and sess.created_by and sess.created_by != user_id and role != "admin":
+                raise APIError("FORBIDDEN", "You do not have permission to upload documents to this session workspace.", status_code=403)
 
         checksum = hashlib.sha256(content).hexdigest()
         doc_id = f"DOC-{uuid.uuid4().hex[:8].upper()}"
@@ -132,7 +195,7 @@ class DocumentService:
                     version=1,
                     checksum=checksum,
                     storage_key=storage_key,
-                    status="processing",
+                    status="UPLOADED",
                     created_by=user_id,
                 )
                 self.db.add(db_doc)
@@ -148,7 +211,7 @@ class DocumentService:
             "version": 1,
             "checksum": checksum,
             "storage_key": storage_key,
-            "status": "processing",
+            "status": "UPLOADED",
             "created_by": user_id,
         }
         self._in_memory_docs[doc_id] = doc_data
@@ -247,6 +310,46 @@ class DocumentService:
         return None
 
     def get_document_evidence(self, doc_id: str) -> dict:
+        if self.db:
+            try:
+                from app.models.chunk import Chunk, SourceBlock
+                db_chunks = self.db.query(Chunk).filter(Chunk.document_id == doc_id).order_by(Chunk.chunk_index.asc()).all()
+                db_blocks = self.db.query(SourceBlock).filter(SourceBlock.document_id == doc_id).order_by(SourceBlock.position.asc()).all()
+                if db_chunks or db_blocks:
+                    return {
+                        "document_id": doc_id,
+                        "chunk_count": len(db_chunks) if db_chunks else len(db_blocks),
+                        "chunks": [
+                            {
+                                "chunk_id": c.id,
+                                "text": c.text,
+                                "section": c.section or "General",
+                                "page": c.page or 1,
+                            }
+                            for c in db_chunks
+                        ] if db_chunks else [
+                            {
+                                "chunk_id": b.id,
+                                "text": b.text,
+                                "section": b.metadata_json.get("section", "General") if b.metadata_json else "General",
+                                "page": b.page or 1,
+                            }
+                            for b in db_blocks
+                        ],
+                        "source_blocks": [
+                            {
+                                "id": b.id,
+                                "block_type": b.block_type,
+                                "text": b.text,
+                                "page": b.page,
+                                "position": b.position,
+                            }
+                            for b in db_blocks
+                        ],
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to query evidence for document {doc_id}: {e}")
+
         doc = self.get_document(doc_id)
         return {
             "document_id": doc_id,

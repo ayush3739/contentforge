@@ -5,7 +5,7 @@ import { AuthState, Role, UserProfile } from "@/types/auth";
 export function getRoleFromClerk(publicMetadataRole?: unknown, email?: string | null): Role {
   if (
     typeof publicMetadataRole === "string" &&
-    ["admin", "reviewer", "analyst"].includes(publicMetadataRole.toLowerCase())
+    ["admin", "analyst"].includes(publicMetadataRole.toLowerCase())
   ) {
     return publicMetadataRole.toLowerCase() as Role;
   }
@@ -28,10 +28,9 @@ export function getRoleFromEmail(email?: string | null): Role {
 
 export const permissionsMap: Record<Role, string[]> = {
   analyst: ["create_session", "upload_source", "generate", "view_verification"],
-  reviewer: ["create_session", "upload_source", "generate", "view_verification", "approve_reject"],
   admin: [
     "create_session", "upload_source", "generate", "view_verification",
-    "approve_reject", "manage_users", "manage_roles", "system_audit", "system_config"
+    "manage_users", "manage_roles", "system_audit", "system_config"
   ],
 };
 

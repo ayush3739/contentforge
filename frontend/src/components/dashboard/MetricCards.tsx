@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { fetchSessions, fetchReviewQueue } from "@/lib/api";
+import { fetchSessions } from "@/lib/api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { FolderKanban, Cpu, ClipboardCheck, FileSpreadsheet } from "lucide-react";
 
@@ -10,17 +10,13 @@ export default function MetricCards() {
   const [stats, setStats] = useState({
     activeSessions: 0,
     inProcessing: 0,
-    reviewQueue: 0,
     generatedArtifacts: 0,
   });
 
   useEffect(() => {
     async function loadStats() {
       try {
-        const [sessions, queueItems] = await Promise.all([
-          fetchSessions(),
-          fetchReviewQueue(),
-        ]);
+        const sessions = await fetchSessions();
         if (Array.isArray(sessions)) {
           const totalSessions = sessions.length;
           const processingCount = sessions.filter((s: any) => s.status === "processing").length;
@@ -29,7 +25,6 @@ export default function MetricCards() {
           setStats({
             activeSessions: totalSessions,
             inProcessing: processingCount,
-            reviewQueue: Array.isArray(queueItems) ? queueItems.length : 0,
             generatedArtifacts: totalArtifacts,
           });
         }
@@ -60,15 +55,7 @@ export default function MetricCards() {
       bg: "bg-amber-50 dark:bg-amber-950/60",
       border: "border-amber-100 dark:border-amber-800/60",
     },
-    {
-      title: "Review Queue",
-      count: stats.reviewQueue,
-      change: stats.reviewQueue > 0 ? "Pending approval" : "Queue clear",
-      icon: ClipboardCheck,
-      color: "text-purple-600 dark:text-purple-400",
-      bg: "bg-purple-50 dark:bg-purple-950/60",
-      border: "border-purple-100 dark:border-purple-800/60",
-    },
+
     {
       title: "Generated Artifacts",
       count: stats.generatedArtifacts,

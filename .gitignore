@@ -18,6 +18,7 @@ eggs/
 !frontend/src/lib/
 parts/
 sdist/
+data/
 var/
 wheels/
 *.egg-info/

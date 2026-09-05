@@ -5,6 +5,7 @@ ContentForge AI — Document Schemas
 from datetime import datetime
 from typing import Any, Optional
 from pydantic import BaseModel, Field
+from app.schemas.enums import DocumentStatus
 
 
 class DocumentResponse(BaseModel):
@@ -15,7 +16,7 @@ class DocumentResponse(BaseModel):
     version: int = 1
     checksum: Optional[str] = None
     storage_key: Optional[str] = None
-    status: str = "ready"  # uploaded, parsing, parsed, indexing, ready, failed
+    status: DocumentStatus = DocumentStatus.UPLOADED
     created_by: Optional[str] = None
     created_at: Optional[datetime] = None
 

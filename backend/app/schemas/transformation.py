@@ -5,6 +5,8 @@ ContentForge AI — Transformation Request Schemas
 from datetime import datetime
 from typing import Any, Optional
 from pydantic import BaseModel, Field
+from app.schemas.enums import TransformationStatus
+from app.renderers.template_registry import ArtifactTemplateConfig
 
 
 class TransformationCreate(BaseModel):
@@ -22,6 +24,7 @@ class TransformationCreate(BaseModel):
     objective: str = Field(default="decision briefing", description="Transformation objective")
     style: str = Field(default="formal", description="Formatting style requirement")
     custom_instructions: Optional[str] = Field(None, description="Custom prompt or focus instructions from the user")
+    template_configs: Optional[dict[str, ArtifactTemplateConfig]] = Field(None, description="Configurations mapped by output type")
 
 
 class TransformationResponse(BaseModel):
@@ -37,14 +40,15 @@ class TransformationResponse(BaseModel):
     objective: str
     style: str
     custom_instructions: Optional[str] = None
-    status: str = "QUEUED"
+    template_configs: Optional[dict[str, ArtifactTemplateConfig]] = None
+    status: TransformationStatus = TransformationStatus.QUEUED
     created_at: Optional[datetime] = None
 
 
 class TransformationStatusResponse(BaseModel):
     transformation_id: str
     session_id: Optional[str] = None
-    status: str  # QUEUED, PROCESSING, GENERATING, VERIFYING, RENDERING, COMPLETED, FAILED, REVIEW_REQUIRED
+    status: TransformationStatus
     progress_percentage: int = 0
     message: Optional[str] = None
     artifacts: list[dict[str, Any]] = []

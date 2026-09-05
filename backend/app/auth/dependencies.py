@@ -28,6 +28,8 @@ async def get_current_user(
     if not token and "authorization" in request.headers:
         token = request.headers.get("authorization")
 
+    from app.auth.rbac import get_role_permissions
+
     if not token:
         # In production, missing token must always be rejected
         if settings.ENVIRONMENT == "production":
@@ -36,24 +38,44 @@ async def get_current_user(
                 message="Authentication token is required.",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
-        client_email = request.headers.get("x-user-email")
-        client_name = request.headers.get("x-user-name")
+        client_user_id = request.headers.get("x-user-id") or request.query_params.get("user_id")
+        client_email = request.headers.get("x-user-email") or request.query_params.get("user_email")
+        client_name = request.headers.get("x-user-name") or request.query_params.get("user_name")
+        client_role = (request.headers.get("x-user-role") or request.query_params.get("user_role") or "analyst").lower()
         return ClerkUserPayload(
-            user_id="USR-DEFAULT-001",
-            clerk_id="user_2default_001",
+            user_id=client_user_id or "USR-DEFAULT-001",
+            clerk_id=client_user_id or "user_2default_001",
             username=client_name or "analyst_dev",
             email=client_email or "analyst@contentforge.ai",
-            role="analyst",
-            permissions=["create_session", "upload_source", "generate", "view_verification"],
+            role=client_role,
+            permissions=get_role_permissions(client_role),
         )
 
     user = decode_clerk_token(token)
     if not user:
+        client_user_id = request.headers.get("x-user-id") or request.query_params.get("user_id")
+        if client_user_id and settings.ENVIRONMENT != "production":
+            client_email = request.headers.get("x-user-email")
+            client_name = request.headers.get("x-user-name")
+            client_role = (request.headers.get("x-user-role") or "analyst").lower()
+            return ClerkUserPayload(
+                user_id=client_user_id,
+                clerk_id=client_user_id,
+                username=client_name or client_user_id,
+                email=client_email or f"{client_user_id}@contentforge.ai",
+                role=client_role,
+                permissions=get_role_permissions(client_role),
+            )
         raise APIError(
             code="INVALID_TOKEN",
             message="Authentication credentials invalid or expired.",
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
+
+    client_user_id = request.headers.get("x-user-id") or request.query_params.get("user_id")
+    if client_user_id and (user.user_id.startswith("USR-DEFAULT") or user.user_id.startswith("usr_dev")):
+        user.user_id = client_user_id
+        user.clerk_id = client_user_id
 
     client_email = request.headers.get("x-user-email")
     client_name = request.headers.get("x-user-name")
@@ -61,6 +83,32 @@ async def get_current_user(
         user.email = client_email
     if client_name:
         user.username = client_name
+
+    # Check for role override from PostgreSQL DB or header
+    header_role = request.headers.get("x-user-role")
+    db_role = None
+    try:
+        from app.core.database import SessionLocal
+        from app.models.user import User
+        db = SessionLocal()
+        query_user = None
+        if user.clerk_id:
+            query_user = db.query(User).filter((User.clerk_id == user.clerk_id) | (User.id == user.user_id)).first()
+        if not query_user and user.email:
+            query_user = db.query(User).filter(User.email == user.email).first()
+        if query_user and query_user.role:
+            db_role = query_user.role.lower()
+        db.close()
+    except Exception:
+        pass
+
+    effective_role = db_role or (header_role.lower() if header_role else None) or user.role
+    if effective_role in ("admin", "analyst", "reviewer"):
+        user.role = effective_role
+        user.permissions = get_role_permissions(effective_role)
+
+    if "download" not in user.permissions:
+        user.permissions.append("download")
 
     return user
 
@@ -73,7 +121,7 @@ def require_user() -> Callable:
 def require_role(required_role: str):
     """
     Dependency generator ensuring current user has a specific role.
-    Role hierarchy: admin > reviewer > analyst.
+    Role hierarchy: admin > analyst.
     """
     async def role_checker(user: ClerkUserPayload = Depends(get_current_user)) -> ClerkUserPayload:
         if user.role == "admin":

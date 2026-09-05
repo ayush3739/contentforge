@@ -63,6 +63,7 @@ async def upload_document(
             content=content,
             mime_type=mime_type,
             user_id=user.user_id,
+            role=user.role,
         )
     else:
         return await service.upload_document(
@@ -71,6 +72,7 @@ async def upload_document(
             content=content,
             mime_type=mime_type,
             user_id=user.user_id,
+            role=user.role,
         )
 
 
@@ -84,6 +86,7 @@ async def get_document(
     Retrieves document metadata.
     """
     service = DocumentService(db=db)
+    service.assert_owner(id, user.user_id, role=user.role)
     doc = service.get_document(id)
     if not doc:
         raise APIError("DOCUMENT_NOT_FOUND", f"Document with ID '{id}' does not exist.", status_code=404)
@@ -100,6 +103,7 @@ async def get_document_versions(
     Retrieves version history for a document.
     """
     service = DocumentService(db=db)
+    service.assert_owner(id, user.user_id, role=user.role)
     doc = service.get_document(id)
     if not doc:
         raise APIError("DOCUMENT_NOT_FOUND", f"Document with ID '{id}' does not exist.", status_code=404)
@@ -125,6 +129,7 @@ async def download_document(
     Streams raw binary source document file directly from Object Storage.
     """
     service = DocumentService(db=db)
+    service.assert_owner(id, user.user_id, role=user.role)
     doc = service.get_document(id)
     if not doc:
         raise APIError("DOCUMENT_NOT_FOUND", f"Document with ID '{id}' does not exist.", status_code=404)
@@ -150,6 +155,7 @@ async def get_document_cco(
     Retrieves Canonical Content Object (CCO) extracted from source document.
     """
     service = DocumentService(db=db)
+    service.assert_owner(id, user.user_id, role=user.role)
     cco = service.get_document_cco(id)
     if not cco:
         raise APIError("CCO_NOT_FOUND", f"CCO for document ID '{id}' does not exist.", status_code=404)
@@ -174,4 +180,5 @@ async def get_document_evidence(
     Retrieves source chunk evidence references for artifact claims.
     """
     service = DocumentService(db=db)
+    service.assert_owner(id, user.user_id, role=user.role)
     return service.get_document_evidence(id)

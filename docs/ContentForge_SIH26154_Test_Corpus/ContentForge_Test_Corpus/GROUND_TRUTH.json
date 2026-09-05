@@ -1,0 +1,49 @@
+{
+  "01_NMU_Incident_Investigation.pdf": {
+    "incident_id": "NMU-IR-260914",
+    "data_gb": 214,
+    "endpoints": 11,
+    "file_servers": 2,
+    "impact_minutes": 37,
+    "actor": "THREAT-GROUP-ORCHID",
+    "confidence": "Moderate",
+    "ip": "203.0.113.44"
+  },
+  "02_Meridian_Decision_Memo.pdf": {
+    "budget_usd": 1000000,
+    "time_reduction_pct": 45,
+    "traceability_target_pct": 95,
+    "verification_target_pct": 98,
+    "output_target": 4
+  },
+  "03_ATOD_Q3_Operations_Report.pdf": {
+    "q3_otp_pct": 94.8,
+    "q3_response_min": 14.7,
+    "q3_interruptions": 31,
+    "q3_info_pct": 92,
+    "q3_ticket_pct": 71,
+    "depots_complete": 12,
+    "depots_total": 18
+  },
+  "04_Provenance_AI_Technical_Brief.pdf": {
+    "verified_latency_s": 27.9,
+    "verified_grounding_pct": 98.1,
+    "synthetic_benchmark": true
+  },
+  "05_CECA_Public_Information_Article.pdf": {
+    "relay_sites": 24,
+    "backup_hubs": 6,
+    "alert_seconds": 90,
+    "duration_months": 9,
+    "investment_usd": 4800000,
+    "start": "October 2026",
+    "completion": "June 2027"
+  },
+  "06_Multilingual_Service_Notice.pdf": {
+    "notice_id": "CECA-NOT-051",
+    "window": "01:00–03:00 IST",
+    "date": "5 October 2026",
+    "contact": "helpdesk@example.test",
+    "emergency_services_affected": false
+  }
+}

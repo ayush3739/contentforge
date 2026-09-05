@@ -61,7 +61,7 @@ async def get_session(
     Retrieves full details for a session including attached documents and transformation requests.
     """
     service = SessionService(db=db)
-    sess = service.get_session(id)
+    sess = service.get_session(id, user_id=user.user_id, role=user.role)
     if not sess:
         raise APIError("SESSION_NOT_FOUND", f"Session with ID '{id}' does not exist.", status_code=404)
     return sess
@@ -77,11 +77,11 @@ async def get_session_artifacts(
     Retrieves all generated artifacts for a session.
     """
     service = SessionService(db=db)
-    sess = service.get_session(id)
+    sess = service.get_session(id, user_id=user.user_id, role=user.role)
     if not sess:
         raise APIError("SESSION_NOT_FOUND", f"Session with ID '{id}' does not exist.", status_code=404)
     art_service = ArtifactService(db=db)
-    return art_service.get_artifacts_by_session(id)
+    return art_service.get_artifacts_by_session(id, user_id=user.user_id, role=user.role)
 
 
 @router.patch("/{id}", response_model=SessionResponse)
@@ -95,7 +95,7 @@ async def update_session(
     Updates session workspace metadata or status.
     """
     service = SessionService(db=db)
-    sess = service.update_session(id, payload, user_id=user.user_id)
+    sess = service.update_session(id, payload, user_id=user.user_id, role=user.role)
     if not sess:
         raise APIError("SESSION_NOT_FOUND", f"Session with ID '{id}' does not exist.", status_code=404)
     return sess
@@ -111,7 +111,7 @@ async def delete_session(
     Deletes a session workspace and cascade purges associated document metadata.
     """
     service = SessionService(db=db)
-    success = service.delete_session(id, user_id=user.user_id)
+    success = service.delete_session(id, user_id=user.user_id, role=user.role)
     if not success:
         raise APIError("SESSION_NOT_FOUND", f"Session with ID '{id}' does not exist.", status_code=404)
     return None

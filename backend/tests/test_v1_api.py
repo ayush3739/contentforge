@@ -162,10 +162,19 @@ def test_artifact_review_and_approval():
     assert ver_resp.status_code == 200
     assert ver_resp.json()["artifact_id"] == art_id
 
-    # Review Queue (Reviewer role required)
-    queue_resp = client.get("/api/v1/review", headers=REVIEWER_HEADERS)
-    assert queue_resp.status_code == 200
+    # Remove review queue as it's been deprecated
 
+    # Finalize Artifact (Owner required)
+    finalize_resp = client.post(
+        f"/api/v1/artifacts/{art_id}/finalize",
+        json={"notes": "Finalized by owner"},
+        headers=ANALYST_HEADERS,
+    )
+    assert finalize_resp.status_code == 200
+    assert finalize_resp.json()["status"] == "FINALIZED"
+
+def test_artifact_revision():
+    art_id = "ART-001"
     # Revise Artifact
     revise_resp = client.post(
         f"/api/v1/artifacts/{art_id}/revise",
@@ -173,16 +182,9 @@ def test_artifact_review_and_approval():
         headers=ANALYST_HEADERS,
     )
     assert revise_resp.status_code == 200
-    assert revise_resp.json()["status"] == "generating"
+    assert revise_resp.json()["status"] == "GENERATING"
 
-    # Finalize / Approve Artifact (Reviewer role required)
-    finalize_resp = client.post(
-        f"/api/v1/artifacts/{art_id}/finalize",
-        json={"action": "approve", "comments": "Looks good for board presentation."},
-        headers=REVIEWER_HEADERS,
-    )
-    assert finalize_resp.status_code == 200
-    assert finalize_resp.json()["status"] == "approved"
+
 
 
 # 7. Admin Audit & Security Logs Tests

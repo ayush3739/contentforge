@@ -10,7 +10,7 @@ from app.models.session import Session
 from app.models.document import Document
 from app.models.chunk import SourceBlock, Chunk
 from app.models.cco import CCOVersion
-from app.models.transformation import TransformationRequest, TransformationRecipe
+from app.models.transformation import TransformationRequest, TransformationRecipe, Job
 from app.models.artifact import Artifact, VerificationResult
 from app.models.provenance import ProvenanceRecord
 from app.models.audit import AuditLog, SecurityEvent
@@ -27,6 +27,7 @@ __all__ = [
     "CCOVersion",
     "TransformationRequest",
     "TransformationRecipe",
+    "Job",
     "Artifact",
     "VerificationResult",
     "ProvenanceRecord",
