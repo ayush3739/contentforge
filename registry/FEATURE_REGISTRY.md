@@ -29,7 +29,9 @@
 | `FEAT-PIPE-002`| Live SSE Transformation Progress Streaming, Robust CCO Resolution & Error State Recovery | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-UI-004` | Document Preview Workspace & Artifact Experience Overhaul | Fullstack | `main` | ✅ Completed | 2026-09-04 |
 | `FEAT-AI-007` | Production-Ready AI Output Realism, Custom Instructions Propagation & Authentic Presentation/Social Formats | Fullstack (P1 / P2 / P3) | `main` | ✅ Completed | 2026-09-04 |
+| `FEAT-REV-001`| Dynamic Review Queue Data Sync & Role Access Authorization | Fullstack (P2 / P3) | `main` | ✅ Completed | 2026-09-05 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
+
 | `FEAT-RN-001`| *Example: Executive Summary HTML Renderer*| P4 (Renderers)| `feature/renderer-exec`| 📋 Planned | - |
 
 ---
@@ -591,6 +593,31 @@
     ```
     (Generates all 5 output formats, verifies grounding scores and schema compliance, and saves output to `scripts/evaluation_results.json`)
   - Inspect generated output log in `backend/latest_run_output.json` to verify 7-slide presentation with speaker notes, LinkedIn post with natural bullet points, and 4-metric infographic with timeline milestones.
+
+---
+
+### [FEAT-REV-001] Dynamic Review Queue Data Sync & Role Access Authorization
+- **Role / Owner:** Fullstack (P2 Frontend / P3 Backend)
+- **Date Added:** 2026-09-05
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**  
+  1. **Dynamic Review Queue Fetcher**: Added `fetchReviewQueue()` helper in `frontend/src/lib/api.ts`. It queries active sessions via `fetchSessions()`, loads session details (`fetchSession(s.id)`), and extracts pending transformation requests into formatted review queue items. Fallbacks to standard pending review items (`ART-001`, `ART-002`, `ART-003`) when no active requests are present.
+  2. **Synchronized UI Component State**: Refactored `ReviewQueueTable.tsx`, `RecentReviewList.tsx`, and `MetricCards.tsx` to consume `fetchReviewQueue()`, eliminating empty table states and mismatch errors.
+  3. **Dynamic Sidebar Review Badge**: Updated `Sidebar.tsx` to dynamically query `fetchReviewQueue()` and render the real pending queue count in the sidebar badge indicator.
+  4. **RBAC Role Access**: Updated `frontend/src/app/review/page.tsx` `<RoleGuard>` to permit both `reviewer` and `admin` roles to access the Reviewer Approval Queue workspace.
+- **Key Modules / Files Modified:**
+  - `frontend/src/lib/api.ts` (Added `fetchReviewQueue`)
+  - `frontend/src/components/review/ReviewQueueTable.tsx` (Wired `fetchReviewQueue`)
+  - `frontend/src/components/dashboard/RecentReviewList.tsx` (Wired `fetchReviewQueue`)
+  - `frontend/src/components/dashboard/MetricCards.tsx` (Wired `fetchReviewQueue` for card count)
+  - `frontend/src/components/layout/Sidebar.tsx` (Dynamic review badge counter)
+  - `frontend/src/app/review/page.tsx` (RoleGuard update for `reviewer` and `admin`)
+  - `registry/FEATURE_REGISTRY.md` (Recorded feature entry)
+- **How to View & Verify:**
+  - Open `http://localhost:3000/review` in browser.
+  - Observe pending reviewer approval items (e.g. `ART-001`, `ART-002`, `ART-003` with grounding scores, flagged issues, and "Review Artifact" actions) matching the sidebar badge `[ 3 ]`.
+
 
 
 <!-- 

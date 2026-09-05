@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { fetchSessions } from "@/lib/api";
+import { fetchReviewQueue } from "@/lib/api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
@@ -15,27 +15,8 @@ export default function ReviewQueueTable() {
     async function loadQueue() {
       try {
         setIsLoading(true);
-        const sessions = await fetchSessions();
-        if (Array.isArray(sessions) && sessions.length > 0) {
-          const items: any[] = [];
-          sessions.forEach((s: any) => {
-            if (s.transformation_requests && s.transformation_requests.length > 0) {
-              s.transformation_requests.forEach((t: any) => {
-                items.push({
-                  id: t.id || `ART-${s.id.substring(4, 10)}`,
-                  session: s.name,
-                  type: t.output_types?.[0] || "presentation",
-                  version: 1,
-                  issue: "Grounding check: Verification completed",
-                  score: 0.96,
-                });
-              });
-            }
-          });
-          setQueue(items);
-        } else {
-          setQueue([]);
-        }
+        const items = await fetchReviewQueue();
+        setQueue(items);
       } catch (err) {
         console.error("Failed to fetch review queue:", err);
       } finally {
