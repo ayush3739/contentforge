@@ -174,15 +174,16 @@ contentforge/
 
 ---
 
-## 👥 Five-Person Engineering Ownership
+## 👥 Contributors
 
-| Role | Responsibility | Workspace | Primary Specification |
-|---|---|---|---|
-| **P1 — AI Engineer** | CCO schema, multimodal embeddings, prompt compiler, generation, grounding verification | [`backend/app/ai/`](./backend/app/ai/) | [`docs/specifications/01_P1_AI_ENGINEER_UPDATED(1).md`](./docs/specifications/01_P1_AI_ENGINEER_UPDATED(1).md) |
-| **P2 — Frontend Engineer** | Next.js operator UI, split-workbench, artifact visualizers, admin dashboards | [`frontend/`](./frontend/) | [`docs/prds/ContentForge_AI_Frontend_PRD.md`](./docs/prds/ContentForge_AI_Frontend_PRD.md) |
-| **P3 — Backend API Engineer** | FastAPI core, Neon PostgreSQL schemas, session state, REST contracts | [`backend/app/api/`](./backend/app/api/) | [`docs/specifications/03_P3_BACKEND_API_UPDATED(1).md`](./docs/specifications/03_P3_BACKEND_API_UPDATED(1).md) |
-| **P4 — Output Artifact Engineer** | PPTX, DOCX, SVG infographic renderers, template registry, design system | [`backend/app/renderers/`](./backend/app/renderers/) | [`docs/specifications/04_P4_OUTPUT_ARTIFACT.md`](./docs/specifications/04_P4_OUTPUT_ARTIFACT.md) |
-| **P5 — Security & Infrastructure** | RBAC, tamper-evident audit logging, cryptographic checksums, deployment | [`backend/app/core/`](./backend/app/core/) | [`docs/specifications/05_P5_CLOUD_CYBER_BLOCKCHAIN_UPDATED(1).md`](./docs/specifications/05_P5_CLOUD_CYBER_BLOCKCHAIN_UPDATED(1).md) |
+Developed with ❤️ by **Team Elite Coders** (SIH26154):
+
+- **Ayush Maurya** ([@ayush3739](https://github.com/ayush3739))
+- **Yash Gupta** ([@yash9359](https://github.com/yash9359))
+- **Kishan Kumar** ([@kishan-7070](https://github.com/kishan-7070))
+- **Ishani Srivastava** ([@Ishani123-we](https://github.com/Ishani123-we))
+- **Aman Kumar Verma** ([@aman875615](https://github.com/aman875615))
+- **Yogesh Kumar** ([@YogeshKumar445](https://github.com/YogeshKumar445))
 
 ---
 
