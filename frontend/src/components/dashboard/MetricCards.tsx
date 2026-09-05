@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { fetchSessions } from "@/lib/api";
+import { fetchSessions, fetchReviewQueue } from "@/lib/api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { FolderKanban, Cpu, ClipboardCheck, FileSpreadsheet } from "lucide-react";
 
@@ -17,7 +17,10 @@ export default function MetricCards() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const sessions = await fetchSessions();
+        const [sessions, queueItems] = await Promise.all([
+          fetchSessions(),
+          fetchReviewQueue(),
+        ]);
         if (Array.isArray(sessions)) {
           const totalSessions = sessions.length;
           const processingCount = sessions.filter((s: any) => s.status === "processing").length;
@@ -26,7 +29,7 @@ export default function MetricCards() {
           setStats({
             activeSessions: totalSessions,
             inProcessing: processingCount,
-            reviewQueue: totalSessions > 0 ? 1 : 0,
+            reviewQueue: Array.isArray(queueItems) ? queueItems.length : 0,
             generatedArtifacts: totalArtifacts,
           });
         }
@@ -36,6 +39,7 @@ export default function MetricCards() {
     }
     loadStats();
   }, [user]);
+
 
   const metrics = [
     {

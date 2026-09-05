@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { fetchSessions } from "@/lib/api";
+import { fetchReviewQueue } from "@/lib/api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 
@@ -15,26 +15,15 @@ export default function RecentReviewList() {
     async function loadReviews() {
       try {
         setIsLoading(true);
-        const sessions = await fetchSessions();
-        if (Array.isArray(sessions) && sessions.length > 0) {
-          const items: any[] = [];
-          sessions.forEach((s: any) => {
-            if (s.transformation_requests && s.transformation_requests.length > 0) {
-              s.transformation_requests.forEach((t: any) => {
-                items.push({
-                  id: t.id || `ART-${s.id.substring(4, 10)}`,
-                  title: `${s.name} - Grounded Artifact`,
-                  type: t.output_types?.[0] || "Presentation",
-                  issue: "Grounding check: Verification completed",
-                  score: "96%",
-                });
-              });
-            }
-          });
-          setReviews(items);
-        } else {
-          setReviews([]);
-        }
+        const queueItems = await fetchReviewQueue();
+        const items = queueItems.map((item: any) => ({
+          id: item.id,
+          title: `${item.session} - Grounded Artifact`,
+          type: item.type,
+          issue: item.issue,
+          score: `${(item.score * 100).toFixed(0)}%`,
+        }));
+        setReviews(items);
       } catch (err) {
         console.error("Failed to load review items:", err);
       } finally {
@@ -43,6 +32,7 @@ export default function RecentReviewList() {
     }
     loadReviews();
   }, [user]);
+
 
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs">

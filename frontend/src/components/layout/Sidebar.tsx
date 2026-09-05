@@ -23,6 +23,9 @@ import {
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
 
+import { useEffect, useState } from "react";
+import { fetchReviewQueue } from "@/lib/api";
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -30,6 +33,21 @@ export default function Sidebar() {
   const { sidebarOpen, toggleSidebar } = useUIStore();
   const { user: clerkUser } = useUser();
   const clerk = useClerk();
+  const [reviewCount, setReviewCount] = useState<number>(3);
+
+  useEffect(() => {
+    async function loadBadgeCount() {
+      try {
+        const items = await fetchReviewQueue();
+        if (Array.isArray(items)) {
+          setReviewCount(items.length);
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    loadBadgeCount();
+  }, []);
 
   const handleLogout = async () => {
     logout();
@@ -57,9 +75,10 @@ export default function Sidebar() {
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, show: isAnalyst },
     { label: "Sessions", href: "/sessions", icon: FolderKanban, show: isAnalyst },
     { label: "New Session", href: "/sessions/new", icon: PlusCircle, show: isAnalyst },
-    { label: "Review Queue", href: "/review", icon: ClipboardCheck, show: isReviewer, badge: "3" },
+    { label: "Review Queue", href: "/review", icon: ClipboardCheck, show: isReviewer, badge: reviewCount > 0 ? String(reviewCount) : undefined },
     { label: "Artifacts", href: "/artifacts", icon: FileSpreadsheet, show: isAnalyst },
   ];
+
 
   const adminItems = [
     { label: "User Management", href: "/admin/users", icon: Users, show: isAdmin },
