@@ -3,36 +3,27 @@
 import { useEffect, useState } from "react";
 import { AuditLogItem } from "@/types/admin";
 import { useAuthStore } from "@/store/useAuthStore";
-import { fetchAdminAuditLogs } from "@/lib/api";
+import { useAdminStore } from "@/store/useAdminStore";
 import { FileText, CheckCircle2, ShieldCheck, Search, Filter, RefreshCw } from "lucide-react";
 
 export default function AuditLogTable() {
   const { user } = useAuthStore();
-  const currentUserId = user?.user_id || "USR-DEFAULT-001";
-  const currentUserEmail = user?.email || "operator@contentforge.ai";
+  const {
+    auditLogsList: logs,
+    isAuditLogsLoading,
+    hasLoadedAuditLogs,
+    fetchAuditLogsList,
+  } = useAdminStore();
 
-  const [logs, setLogs] = useState<AuditLogItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const currentUserId = user?.user_id || "USR-DEFAULT-001";
   const [searchTerm, setSearchTerm] = useState("");
   const [filterAction, setFilterAction] = useState<string>("ALL");
 
-  const loadAuditLogs = async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetchAdminAuditLogs(100);
-      if (Array.isArray(data)) {
-        setLogs(data);
-      }
-    } catch (err) {
-      console.error("Failed to load audit logs:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadAuditLogs();
-  }, []);
+    fetchAuditLogsList();
+  }, [fetchAuditLogsList]);
+
+  const isLoading = !hasLoadedAuditLogs && isAuditLogsLoading;
 
   const filteredLogs = logs.filter((log) => {
     const actorName = (log as any).actor_name || log.user_id || "System";
@@ -69,7 +60,7 @@ export default function AuditLogTable() {
 
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={loadAuditLogs}
+            onClick={() => fetchAuditLogsList(true)}
             disabled={isLoading}
             className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
             title="Refresh Audit Logs"

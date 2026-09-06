@@ -82,13 +82,13 @@ def decode_clerk_token(token: str) -> Optional[ClerkUserPayload]:
 
     # 2. Decode standard JWT
     try:
-        # If secret key or JWKS is configured, attempt verification
-        options = {"verify_signature": False} if not settings.CLERK_SECRET_KEY else {"verify_signature": True}
         secret = settings.CLERK_SECRET_KEY or settings.SECRET_KEY
-        
+        is_pem_key = secret and ("BEGIN" in secret and "PUBLIC KEY" in secret)
+        options = {"verify_signature": True} if is_pem_key else {"verify_signature": False}
+
         payload: dict[str, Any] = jwt.decode(
             token,
-            key=secret,
+            key=secret if is_pem_key else None,
             algorithms=["HS256", "RS256"],
             options=options,
         )

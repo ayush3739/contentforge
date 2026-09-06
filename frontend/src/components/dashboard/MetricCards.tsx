@@ -1,39 +1,30 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { fetchSessions } from "@/lib/api";
-import { useAuthStore } from "@/store/useAuthStore";
-import { FolderKanban, Cpu, ClipboardCheck, FileSpreadsheet } from "lucide-react";
+import React, { useEffect, useMemo } from "react";
+import { useSessionStore } from "@/store/useSessionStore";
+import { FolderKanban, Cpu, FileSpreadsheet } from "lucide-react";
 
 export default function MetricCards() {
-  const { user } = useAuthStore();
-  const [stats, setStats] = useState({
-    activeSessions: 0,
-    inProcessing: 0,
-    generatedArtifacts: 0,
-  });
+  const { sessionsList, fetchSessionsList } = useSessionStore();
 
   useEffect(() => {
-    async function loadStats() {
-      try {
-        const sessions = await fetchSessions();
-        if (Array.isArray(sessions)) {
-          const totalSessions = sessions.length;
-          const processingCount = sessions.filter((s: any) => s.status === "processing").length;
-          const totalArtifacts = sessions.reduce((acc: number, s: any) => acc + (s.transformation_count || s.outputs || 0), 0);
-          
-          setStats({
-            activeSessions: totalSessions,
-            inProcessing: processingCount,
-            generatedArtifacts: totalArtifacts,
-          });
-        }
-      } catch (err) {
-        console.error("Failed to load metrics stats:", err);
-      }
-    }
-    loadStats();
-  }, [user]);
+    fetchSessionsList();
+  }, [fetchSessionsList]);
+
+  const stats = useMemo(() => {
+    const totalSessions = sessionsList.length;
+    const processingCount = sessionsList.filter((s: any) => s.status === "processing").length;
+    const totalArtifacts = sessionsList.reduce(
+      (acc: number, s: any) => acc + (s.transformation_count || s.outputs || 0),
+      0
+    );
+
+    return {
+      activeSessions: totalSessions,
+      inProcessing: processingCount,
+      generatedArtifacts: totalArtifacts,
+    };
+  }, [sessionsList]);
 
 
   const metrics = [

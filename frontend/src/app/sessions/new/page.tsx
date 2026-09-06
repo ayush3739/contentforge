@@ -9,7 +9,7 @@ import { Upload, FileText, CheckCircle2, ArrowRight, Loader2 } from "lucide-reac
 
 export default function NewSessionPage() {
   const router = useRouter();
-  const { setCurrentSession } = useSessionStore();
+  const { setCurrentSession, addSession } = useSessionStore();
   const { addToast } = useUIStore();
   const [step, setStep] = useState(1);
   const [sessionName, setSessionName] = useState("Incident Briefing Workspace");
@@ -51,6 +51,7 @@ export default function NewSessionPage() {
     // 1. Create Session
     const sess = await createSession({ name: sessionName });
     setCurrentSession(sess);
+    addSession(sess);
     setUploadProgress(10);
 
     // 2. Upload Document with SSE streaming progress
@@ -157,9 +158,19 @@ export default function NewSessionPage() {
           <button
             disabled={!file || isUploading}
             onClick={handleStartIngestion}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs disabled:opacity-40 transition-all"
+            className="flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer active:scale-[0.98] outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none disabled:scale-100 disabled:shadow-none select-none"
           >
-            Start Source Ingestion <ArrowRight className="h-4 w-4" />
+            {isUploading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-white" />
+                <span>Ingesting Source File...</span>
+              </>
+            ) : (
+              <>
+                <span>Start Source Ingestion</span>
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
         </div>
       </div>
