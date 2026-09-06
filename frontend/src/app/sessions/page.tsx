@@ -8,23 +8,14 @@ import { useEffect, useState, useMemo } from "react";
 import { fetchSessions } from "@/lib/api";
 
 export default function SessionsPage() {
-  const { sessionsList, setSessionsList } = useSessionStore();
-  const [isLoading, setIsLoading] = useState(true);
+  const { sessionsList, isSessionsLoading, hasLoadedSessions, fetchSessionsList } = useSessionStore();
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    async function load() {
-      try {
-        const data = await fetchSessions();
-        setSessionsList(data);
-      } catch (e) {
-        console.error("Failed to fetch sessions", e);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    load();
-  }, [setSessionsList]);
+    fetchSessionsList();
+  }, [fetchSessionsList]);
+
+  const showLoading = !hasLoadedSessions && isSessionsLoading;
 
   const filteredSessions = useMemo(() => {
     if (!searchQuery.trim()) return sessionsList;
@@ -69,7 +60,7 @@ export default function SessionsPage() {
 
       {/* Grid of Sessions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {isLoading ? (
+        {showLoading ? (
           // Skeleton Cards
           Array.from({ length: 4 }).map((_, idx) => (
             <div

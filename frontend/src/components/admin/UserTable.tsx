@@ -4,13 +4,21 @@ import { useEffect, useState } from "react";
 import { UserAccount } from "@/types/admin";
 import { getRoleBadgeClass } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
-import { fetchAdminUsers, provisionAdminUser, updateUserRole } from "@/lib/api";
+import { useAdminStore } from "@/store/useAdminStore";
+import { provisionAdminUser, updateUserRole } from "@/lib/api";
 import { Users, UserPlus, RefreshCw, CheckCircle, AlertCircle, X } from "lucide-react";
 
 export default function UserTable() {
   const { user: currentUser } = useAuthStore();
-  const [users, setUsers] = useState<UserAccount[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    usersList: users,
+    isUsersLoading,
+    hasLoadedUsers,
+    fetchUsersList,
+    addUser,
+    updateUserRoleInStore,
+  } = useAdminStore();
+
   const [showModal, setShowModal] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
@@ -18,34 +26,11 @@ export default function UserTable() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  const loadUsers = async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetchAdminUsers();
-      if (Array.isArray(data) && data.length > 0) {
-        setUsers(data);
-      } else if (currentUser) {
-        setUsers([
-          {
-            id: currentUser.user_id,
-            clerk_id: currentUser.user_id,
-            name: currentUser.username || "Operator",
-            email: currentUser.email || "operator@contentforge.ai",
-            role: currentUser.role || "admin",
-            status: "active",
-          },
-        ]);
-      }
-    } catch (err) {
-      console.error("Failed to load users:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadUsers();
-  }, [currentUser]);
+    fetchUsersList(currentUser);
+  }, [currentUser, fetchUsersList]);
+
+  const isLoading = !hasLoadedUsers && isUsersLoading;
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,16 +38,19 @@ export default function UserTable() {
     setIsSubmitting(true);
     setFeedback(null);
     try {
-      await provisionAdminUser({
+      const res = await provisionAdminUser({
         email: newEmail,
         name: newName,
         role: newRole,
       });
+      if (res && res.id) {
+        addUser(res);
+      }
       setFeedback({ type: "success", message: `User ${newName} successfully provisioned.` });
       setNewEmail("");
       setNewName("");
       setShowModal(false);
-      await loadUsers();
+      await fetchUsersList(currentUser, true);
     } catch (err: any) {
       setFeedback({ type: "error", message: err.message || "Failed to create user." });
     } finally {
@@ -72,8 +60,9 @@ export default function UserTable() {
 
   const handleRoleChange = async (userId: string, targetRole: string) => {
     try {
+      updateUserRoleInStore(userId, targetRole);
       await updateUserRole(userId, targetRole);
-      await loadUsers();
+      await fetchUsersList(currentUser, true);
     } catch (err) {
       console.error("Failed to update role:", err);
     }
@@ -93,7 +82,7 @@ export default function UserTable() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={loadUsers}
+            onClick={() => fetchUsersList(currentUser, true)}
             disabled={isLoading}
             className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
             title="Refresh Users"

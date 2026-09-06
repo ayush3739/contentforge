@@ -1,31 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { SecurityEventItem } from "@/types/admin";
-import { fetchAdminSecurityEvents } from "@/lib/api";
+import { useEffect } from "react";
+import { useAdminStore } from "@/store/useAdminStore";
 import { ShieldAlert, RefreshCw, CheckCircle } from "lucide-react";
 
 export default function SecurityEventTable() {
-  const [events, setEvents] = useState<SecurityEventItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const loadEvents = async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetchAdminSecurityEvents(100);
-      if (Array.isArray(data)) {
-        setEvents(data);
-      }
-    } catch (err) {
-      console.error("Failed to load security events:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    securityEventsList: events,
+    isSecurityEventsLoading,
+    hasLoadedSecurityEvents,
+    fetchSecurityEventsList,
+  } = useAdminStore();
 
   useEffect(() => {
-    loadEvents();
-  }, []);
+    fetchSecurityEventsList();
+  }, [fetchSecurityEventsList]);
+
+  const isLoading = !hasLoadedSecurityEvents && isSecurityEventsLoading;
 
   const getSeverityBadge = (severity: string) => {
     switch (severity.toLowerCase()) {
@@ -53,7 +44,7 @@ export default function SecurityEventTable() {
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Persisted cybersecurity events, prompt injection detections, and guardrail enforcement records</p>
         </div>
         <button
-          onClick={loadEvents}
+          onClick={() => fetchSecurityEventsList(true)}
           disabled={isLoading}
           className="p-2 self-start sm:self-auto rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           title="Refresh Security Events"

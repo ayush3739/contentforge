@@ -1,32 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
-import { fetchArtifacts } from "@/lib/api";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useTransformationStore } from "@/store/useTransformationStore";
 import { FileSpreadsheet, PlusCircle, ShieldCheck, ArrowRight, Presentation, FileText, ShieldAlert, BarChart3, Video, Share2 } from "lucide-react";
 
 export default function ArtifactsPage() {
-  const [artifacts, setArtifacts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { artifactsList, isArtifactsLoading, hasLoadedArtifacts, fetchArtifactsList } = useTransformationStore();
 
   useEffect(() => {
-    async function loadArtifactsData() {
-      try {
-        setIsLoading(true);
-        const data = await fetchArtifacts();
-        if (Array.isArray(data)) {
-          setArtifacts(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch artifacts:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadArtifactsData();
-  }, [user]);
+    fetchArtifactsList();
+  }, [fetchArtifactsList]);
+
+  const isLoading = !hasLoadedArtifacts && isArtifactsLoading;
 
   const getArtifactIcon = (type: string) => {
     switch (type) {
@@ -55,7 +41,7 @@ export default function ArtifactsPage() {
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">Generated Output Artifacts</h1>
             <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-bold border border-blue-200 dark:border-blue-800">
-              {artifacts.length} Artifacts
+              {artifactsList.length} Artifacts
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -76,7 +62,7 @@ export default function ArtifactsPage() {
         <div className="py-16 text-center text-xs text-slate-500 dark:text-slate-400">
           Loading generated artifacts...
         </div>
-      ) : artifacts.length === 0 ? (
+      ) : artifactsList.length === 0 ? (
         <div className="p-12 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center flex flex-col items-center justify-center space-y-4 shadow-xs">
           <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
             <FileSpreadsheet className="h-10 w-10" />
@@ -96,7 +82,7 @@ export default function ArtifactsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {artifacts.map((art) => {
+          {artifactsList.map((art) => {
             const artId = art.artifact_id || art.id;
             const artType = art.type || "presentation";
             const artTitle = art.content_json?.title || `${artType.replace("_", " ").toUpperCase()} Artifact`;

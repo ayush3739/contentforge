@@ -19,7 +19,9 @@ import {
   Palette,
   ShieldCheck,
   Layers,
+  Loader2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TransformationPlannerProps {
   sessionId?: string;
@@ -34,6 +36,7 @@ export default function TransformationPlanner({ sessionId: sessionIdProp }: Tran
   const { selectedOutputTypes, toggleOutputType, params, setParams, socialConfig, setSocialConfig } =
     useTransformationStore();
   const { addToast } = useUIStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [templateConfigs, setTemplateConfigs] = useState<Record<string, ArtifactTemplateConfig>>({
     presentation: {
@@ -93,6 +96,8 @@ export default function TransformationPlanner({ sessionId: sessionIdProp }: Tran
   ];
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+
     if (!activeSessionId) {
       addToast({
         type: "error",
@@ -111,6 +116,7 @@ export default function TransformationPlanner({ sessionId: sessionIdProp }: Tran
       return;
     }
 
+    setIsSubmitting(true);
     addToast({
       type: "info",
       title: "Submitting Transformation",
@@ -138,6 +144,7 @@ export default function TransformationPlanner({ sessionId: sessionIdProp }: Tran
       });
       router.push(`/transformations/${res.transformation_id}`);
     } catch (err: any) {
+      setIsSubmitting(false);
       addToast({
         type: "error",
         title: "Submission Failed",
@@ -602,9 +609,23 @@ export default function TransformationPlanner({ sessionId: sessionIdProp }: Tran
       <div className="flex justify-end pt-4">
         <button
           onClick={handleSubmit}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+          disabled={isSubmitting}
+          className={cn(
+            "flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer active:scale-[0.98] outline-none focus:ring-2 focus:ring-blue-500/50 select-none",
+            isSubmitting && "opacity-80 cursor-not-allowed pointer-events-none scale-100 shadow-none"
+          )}
         >
-          <Sparkles className="h-4 w-4" /> Execute Transformation Pipeline
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-white" />
+              <span>Executing Transformation Pipeline...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4 text-blue-200" />
+              <span>Execute Transformation Pipeline</span>
+            </>
+          )}
         </button>
       </div>
 

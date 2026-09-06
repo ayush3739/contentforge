@@ -40,6 +40,9 @@
 | `FEAT-SEC-002`| Multi-Tenant Session & Artifact Isolation, Cross-User Leak Prevention & Real Artifact UI Wiring | Fullstack (P1 / P2 / P3 / P5) | `main` | ✅ Completed | 2026-09-05 |
 | `FEAT-PIPE-003`| Infographic Resilience, Chunk PK Collision Fix, Startup Redis Warmup & Dynamic Grounded Fallbacks | Fullstack (P1 / P2 / P3 / P4) | `main` | ✅ Completed | 2026-09-05 |
 | `FEAT-SYS-004`| Next.js 16 SSR Hydration Resolution, Real Admin Governance DB Wiring & Gemini Multimodal Image Embedding | Fullstack (P1 / P2 / P3) | `main` | ✅ Completed | 2026-09-06 |
+| `FEAT-FE-004` | Zero-Latency Zustand Cache & Background Stale-While-Revalidate Session Sync | P2 (Frontend) | `main` | ✅ Completed | 2026-09-06 |
+| `FEAT-FE-005` | Complete Application-Wide Zustand Caching (Artifacts & Admin Governance: Users, Audit Logs, Security Events) | P2 (Frontend) | `main` | ✅ Completed | 2026-09-06 |
+| `FEAT-FE-006` | Interactive Button Feedback, Active Tactile Press & Animated Loading Spinner (Transformation Pipeline & Ingestion) | P2 (Frontend) | `main` | ✅ Completed | 2026-09-06 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
 
 | `FEAT-RN-001`| *Example: Executive Summary HTML Renderer*| P4 (Renderers)| `feature/renderer-exec`| 📋 Planned | - |
@@ -47,6 +50,36 @@
 ---
 
 ## 📝 Detailed Feature Log
+
+### [FEAT-FE-006] Interactive Button Feedback, Active Tactile Press & Animated Loading Spinner
+- **Role / Owner:** P2 (Frontend Engineer)
+- **Date Added:** 2026-09-06
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**
+  1. **Transformation Pipeline CTA ([`TransformationPlanner.tsx`](file:///d:/sih/contentforge/frontend/src/components/transform/TransformationPlanner.tsx)):** Added `isSubmitting` state, `Loader2` spinning indicator, active press micro-animation (`active:scale-[0.98]`), and disabled state during pipeline queue submission.
+  2. **Source Ingestion CTA ([`app/sessions/new/page.tsx`](file:///d:/sih/contentforge/frontend/src/app/sessions/new/page.tsx)):** Enhanced "Start Source Ingestion" button with active press feedback, glowing hover effects, and spinning loading text during file upload & parsing.
+
+### [FEAT-FE-005] Complete Application-Wide Zustand Caching (Artifacts & Admin Governance)
+- **Role / Owner:** P2 (Frontend Engineer)
+- **Date Added:** 2026-09-06
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**
+  1. **Artifacts Store Extension (`useTransformationStore.ts`):** Added `artifactsList`, `hasLoadedArtifacts`, `isArtifactsLoading`, and `fetchArtifactsList(forceRefresh?)` for zero-latency load in `app/artifacts/page.tsx`.
+  2. **Admin Governance Store Creation (`useAdminStore.ts`):** Created global Zustand store managing `usersList`, `auditLogsList`, and `securityEventsList` with background stale-while-revalidate fetching and optimistic mutations (`addUser`, `updateUserRoleInStore`).
+  3. **Zero-Latency Admin Tables:** Refactored `UserTable.tsx`, `AuditLogTable.tsx`, and `SecurityEventTable.tsx` to read directly from `useAdminStore`, removing repetitive loading spinners when switching admin routes.
+
+### [FEAT-FE-004] Zero-Latency Zustand Cache & Background Stale-While-Revalidate Session Sync
+- **Role / Owner:** P2 (Frontend Engineer)
+- **Date Added:** 2026-09-06
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**
+  1. **Zustand Store (`useSessionStore.ts`) Extension:** Added `hasLoadedSessions`, `isSessionsLoading`, `fetchSessionsList(forceRefresh?)`, and `addSession(session)` actions.
+  2. **Zero-Latency UI Rendering:** Updated `MetricCards.tsx`, `RecentSessionsTable.tsx`, and `app/sessions/page.tsx` to read `sessionsList` directly from global Zustand store for instantaneous rendering (0ms delay) on navigation.
+  3. **Background Stale-While-Revalidate:** Implemented background fetch revalidation so API updates silently refresh the store without flickering loading spinners.
+  4. **Optimistic New Session Prepend:** Updated `app/sessions/new/page.tsx` to immediately push newly created sessions into `sessionsList`.
 
 ### [FEAT-SYS-004] Next.js 16 SSR Hydration Resolution, Real Admin Governance DB Wiring & Gemini Multimodal Image Embedding
 - **Role / Owner:** Fullstack (P1 AI / P2 Frontend / P3 Backend API)

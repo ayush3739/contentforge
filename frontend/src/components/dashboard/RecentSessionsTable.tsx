@@ -3,15 +3,13 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { getStatusBadgeClass } from "@/lib/utils";
-import { fetchSessions } from "@/lib/api";
+import { useSessionStore } from "@/store/useSessionStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { ArrowRight, FileText, PlusCircle } from "lucide-react";
 
 export default function RecentSessionsTable() {
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthStore();
-
+  const { sessionsList, isSessionsLoading, hasLoadedSessions, fetchSessionsList } = useSessionStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -19,21 +17,11 @@ export default function RecentSessionsTable() {
   }, []);
 
   useEffect(() => {
-    async function loadSessions() {
-      try {
-        setIsLoading(true);
-        const data = await fetchSessions();
-        if (Array.isArray(data)) {
-          setSessions(data);
-        }
-      } catch (err) {
-        console.error("Error fetching sessions in RecentSessionsTable:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadSessions();
-  }, [user]);
+    fetchSessionsList();
+  }, [fetchSessionsList]);
+
+  // Show loading only if we NEVER loaded sessions before and is currently fetching
+  const showLoading = !hasLoadedSessions && isSessionsLoading;
 
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs transition-colors duration-300">
@@ -48,9 +36,9 @@ export default function RecentSessionsTable() {
       </div>
 
       <div className="overflow-x-auto">
-        {isLoading ? (
+        {showLoading ? (
           <div className="py-8 text-center text-xs text-slate-500 font-medium">Loading active sessions...</div>
-        ) : sessions.length === 0 ? (
+        ) : sessionsList.length === 0 ? (
           <div className="py-8 text-center flex flex-col items-center gap-3">
             <p className="text-xs text-slate-500 dark:text-slate-400">No active sessions found for your account.</p>
             <Link
@@ -73,7 +61,7 @@ export default function RecentSessionsTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {sessions.map((s) => (
+              {sessionsList.map((s: any) => (
                 <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="py-3 px-3">
                     <div className="font-semibold text-slate-900 dark:text-slate-100">{s.name}</div>
