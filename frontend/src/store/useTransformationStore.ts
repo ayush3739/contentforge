@@ -17,6 +17,7 @@ interface TransformationStoreState {
   setSocialConfig: (config: Partial<SocialConfig>) => void;
   setCurrentTransformation: (transformation: TransformationStatusItem | null) => void;
   fetchArtifactsList: (forceRefresh?: boolean) => Promise<void>;
+  removeArtifact: (artifactId: string) => void;
   resetPlanner: () => void;
 }
 
@@ -105,6 +106,13 @@ export const useTransformationStore = create<TransformationStoreState>()(
       },
 
       setCurrentTransformation: (transformation) => set({ currentTransformation: transformation }),
+
+      removeArtifact: (artifactId: string) =>
+        set((state) => ({
+          artifactsList: state.artifactsList.filter(
+            (a) => (a.artifact_id || a.id) !== artifactId
+          ),
+        })),
 
       resetPlanner: () =>
         set({

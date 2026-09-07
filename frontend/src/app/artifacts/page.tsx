@@ -1,12 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTransformationStore } from "@/store/useTransformationStore";
-import { FileSpreadsheet, PlusCircle, ShieldCheck, ArrowRight, Presentation, FileText, ShieldAlert, BarChart3, Video, Share2 } from "lucide-react";
+import { useUIStore } from "@/store/useUIStore";
+import { deleteArtifact } from "@/lib/api";
+import {
+  FileSpreadsheet,
+  PlusCircle,
+  ShieldCheck,
+  ArrowRight,
+  Presentation,
+  FileText,
+  ShieldAlert,
+  BarChart3,
+  Video,
+  Share2,
+  Trash2,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 
 export default function ArtifactsPage() {
-  const { artifactsList, isArtifactsLoading, hasLoadedArtifacts, fetchArtifactsList } = useTransformationStore();
+  const { artifactsList, isArtifactsLoading, hasLoadedArtifacts, fetchArtifactsList, removeArtifact } = useTransformationStore();
+  const { addToast } = useUIStore();
+
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchArtifactsList();
@@ -30,6 +50,30 @@ export default function ArtifactsPage() {
         return <Share2 className="h-4 w-4 text-sky-600 dark:text-sky-400" />;
       default:
         return <FileSpreadsheet className="h-4 w-4 text-slate-600 dark:text-slate-400" />;
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget || isDeleting) return;
+    const artId = deleteTarget.artifact_id || deleteTarget.id;
+    try {
+      setIsDeleting(true);
+      await deleteArtifact(artId);
+      removeArtifact(artId);
+      addToast({
+        type: "success",
+        title: "Artifact Deleted",
+        message: `Artifact ${artId} was permanently removed.`,
+      });
+      setDeleteTarget(null);
+    } catch (err: any) {
+      addToast({
+        type: "error",
+        title: "Delete Failed",
+        message: err.message || "Failed to delete the artifact.",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -89,16 +133,25 @@ export default function ArtifactsPage() {
             return (
               <div
                 key={artId}
-                className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-blue-300 dark:hover:border-blue-700 transition-all flex flex-col justify-between space-y-4"
+                className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:border-blue-300 dark:hover:border-blue-700 transition-all flex flex-col justify-between space-y-4 group"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[10px] text-blue-700 dark:text-blue-400 font-bold uppercase">
                       {artId}
                     </span>
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                      <ShieldCheck className="h-3 w-3" /> Grounded
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                        <ShieldCheck className="h-3 w-3" /> Grounded
+                      </span>
+                      <button
+                        onClick={() => setDeleteTarget(art)}
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer"
+                        title="Delete Artifact"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex items-start gap-3">
@@ -126,6 +179,52 @@ export default function ArtifactsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Delete Artifact Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in-50 zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 shrink-0">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Delete Artifact?</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Are you sure you want to delete this <strong className="text-slate-900 dark:text-white uppercase font-mono">{deleteTarget.type || "output"}</strong> artifact ({deleteTarget.artifact_id || deleteTarget.id})? This will permanently remove the output and its rendered binary file.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5" /> Delete Artifact
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

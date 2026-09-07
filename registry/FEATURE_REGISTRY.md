@@ -43,6 +43,7 @@
 | `FEAT-FE-004` | Zero-Latency Zustand Cache & Background Stale-While-Revalidate Session Sync | P2 (Frontend) | `main` | ✅ Completed | 2026-09-06 |
 | `FEAT-FE-005` | Complete Application-Wide Zustand Caching (Artifacts & Admin Governance: Users, Audit Logs, Security Events) | P2 (Frontend) | `main` | ✅ Completed | 2026-09-06 |
 | `FEAT-FE-006` | Interactive Button Feedback, Active Tactile Press & Animated Loading Spinner (Transformation Pipeline & Ingestion) | P2 (Frontend) | `main` | ✅ Completed | 2026-09-06 |
+| `FEAT-SYS-005` | Delete Artifact, Session Rename, and Session Deletion Workflows with Cascading Cleanup & Audit Logs | Fullstack (P2 / P3 / P5) | `main` | ✅ Completed | 2026-09-07 |
 | `FEAT-FE-001`| *Example: Session Workspace & CCO Viewer* | P2 (Frontend) | `feature/frontend-workspace` | 📋 Planned | - |
 
 | `FEAT-RN-001`| *Example: Executive Summary HTML Renderer*| P4 (Renderers)| `feature/renderer-exec`| 📋 Planned | - |
@@ -51,8 +52,43 @@
 
 ## 📝 Detailed Feature Log
 
-### [FEAT-FE-006] Interactive Button Feedback, Active Tactile Press & Animated Loading Spinner
-- **Role / Owner:** P2 (Frontend Engineer)
+### [FEAT-SYS-005] Delete Artifact, Session Rename, and Session Deletion Workflows
+- **Role / Owner:** Fullstack (P2 Frontend / P3 Backend / P5 Security)
+- **Date Added:** 2026-09-07
+- **Branch:** `main`
+- **Status:** ✅ Completed
+- **Description:**
+  1. **Artifact Deletion (`DELETE /api/v1/artifacts/{id}`):**
+     - Added endpoint in `backend/app/api/v1/artifacts.py` and `delete_artifact` in `backend/app/services/artifact_service.py`.
+     - Validates ownership (`assert_owner`), removes binary object from storage via `delete_object` in `backend/app/storage/__init__.py`, cascades verification results and provenance records, and logs `ARTIFACT_DELETED` audit event.
+     - Added Delete Artifact button and confirmation modal in `ArtifactViewer.tsx` (session split workbench) and `/artifacts` list page (`app/artifacts/page.tsx`). On deletion, synchronizes Zustand store and updates UI without full page reloads.
+  2. **Session Rename (`PATCH /api/v1/sessions/{id}`):**
+     - Validates owner/admin permissions and updates session `name` in PostgreSQL database and in-memory cache, recording `SESSION_UPDATED` audit log.
+     - Added Rename button (pencil icon) with clean modal in both `/sessions` directory cards (`app/sessions/page.tsx`) and the Session Workspace header (`app/sessions/[sessionId]/page.tsx`).
+  3. **Session Deletion (`DELETE /api/v1/sessions/{id}`):**
+     - Safely removes child jobs and cascades through documents, CCO versions, transformation requests, and artifacts, recording `SESSION_DELETED` audit event.
+     - Added Delete Workspace button with safety confirmation dialog in `/sessions` cards and the Session Workspace header, automatically redirecting to `/sessions` on completion.
+- **Key Modules / Files Modified:**
+  - `backend/app/storage/__init__.py`
+  - `backend/app/services/artifact_service.py`
+  - `backend/app/api/v1/artifacts.py`
+  - `backend/app/services/session_service.py`
+  - `backend/tests/test_v1_api.py`
+  - `frontend/src/lib/api.ts`
+  - `frontend/src/store/useSessionStore.ts`
+  - `frontend/src/store/useTransformationStore.ts`
+  - `frontend/src/app/sessions/page.tsx`
+  - `frontend/src/app/sessions/[sessionId]/page.tsx`
+  - `frontend/src/app/artifacts/page.tsx`
+  - `frontend/src/app/artifacts/[artifactId]/page.tsx`
+  - `frontend/src/components/artifacts/ArtifactViewer.tsx`
+  - `registry/FEATURE_REGISTRY.md`
+- **How to View & Verify:**
+  - Open `/sessions`: click the pencil icon to rename a session, or the trash icon to delete it.
+  - Open `/sessions/[sessionId]`: click the pencil icon next to the title to rename, or "Delete Workspace" to delete and redirect.
+  - Open `/artifacts` or an artifact inside a session: click "Delete" / trash icon to remove the artifact.
+  - Run `uv run pytest tests/test_v1_api.py -v` (9/9 passed).
+
 - **Date Added:** 2026-09-06
 - **Branch:** `main`
 - **Status:** ✅ Completed

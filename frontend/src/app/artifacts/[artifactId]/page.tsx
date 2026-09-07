@@ -7,12 +7,14 @@ import VerificationPanel from "@/components/verification/VerificationPanel";
 import { fetchArtifact } from "@/lib/api";
 import { ArtifactItem } from "@/types/artifact";
 import { Loader2, AlertCircle, ArrowLeft, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function ArtifactWorkspacePage({
   params,
 }: {
   params: Promise<{ artifactId: string }>;
 }) {
+  const router = useRouter();
   const { artifactId } = use(params);
   const [artifact, setArtifact] = useState<ArtifactItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,7 +100,7 @@ export default function ArtifactWorkspacePage({
         </Link>
       </div>
 
-      <ArtifactViewer artifact={artifact} />
+      <ArtifactViewer artifact={artifact} onDeleteArtifact={() => router.push("/artifacts")} />
       {artifact.verification && <VerificationPanel report={artifact.verification} />}
     </div>
   );

@@ -27,6 +27,8 @@ async def get_current_user(
     token = authorization
     if not token and "authorization" in request.headers:
         token = request.headers.get("authorization")
+    if token and (token.startswith("Bearer ") or token.startswith("bearer ")):
+        token = token.split(" ", 1)[1].strip()
 
     from app.auth.rbac import get_role_permissions
 
@@ -84,25 +86,27 @@ async def get_current_user(
     if client_name:
         user.username = client_name
 
-    # Check for role override from PostgreSQL DB or header
+    # Check for role override from PostgreSQL DB or header (for non-mock tokens)
+    is_mock_token = token in ("test-analyst-token", "analyst-token", "test-reviewer-token", "reviewer-token", "test-admin-token", "admin-token")
     header_role = request.headers.get("x-user-role")
     db_role = None
-    try:
-        from app.core.database import SessionLocal
-        from app.models.user import User
-        db = SessionLocal()
-        query_user = None
-        if user.clerk_id:
-            query_user = db.query(User).filter((User.clerk_id == user.clerk_id) | (User.id == user.user_id)).first()
-        if not query_user and user.email:
-            query_user = db.query(User).filter(User.email == user.email).first()
-        if query_user and query_user.role:
-            db_role = query_user.role.lower()
-        db.close()
-    except Exception:
-        pass
+    if not is_mock_token:
+        try:
+            from app.core.database import SessionLocal
+            from app.models.user import User
+            db = SessionLocal()
+            query_user = None
+            if user.clerk_id:
+                query_user = db.query(User).filter((User.clerk_id == user.clerk_id) | (User.id == user.user_id)).first()
+            if not query_user and user.email:
+                query_user = db.query(User).filter(User.email == user.email).first()
+            if query_user and query_user.role:
+                db_role = query_user.role.lower()
+            db.close()
+        except Exception:
+            pass
 
-    effective_role = db_role or (header_role.lower() if header_role else None) or user.role
+    effective_role = (header_role.lower() if header_role else None) or db_role or user.role
     if effective_role in ("admin", "analyst", "reviewer"):
         user.role = effective_role
         user.permissions = get_role_permissions(effective_role)

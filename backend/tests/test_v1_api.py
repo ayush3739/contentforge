@@ -87,6 +87,13 @@ def test_session_workspace_crud():
     assert patch_resp.status_code == 200
     assert patch_resp.json()["name"] == "Updated Incident Workspace"
 
+    # Delete Session
+    del_resp = client.delete(f"/api/v1/sessions/{sess_id}", headers=ANALYST_HEADERS)
+    assert del_resp.status_code == 204
+    # Verify Session is gone
+    get_del_resp = client.get(f"/api/v1/sessions/{sess_id}", headers=ANALYST_HEADERS)
+    assert get_del_resp.status_code == 404
+
 
 # 4. Document Ingestion & CCO/Evidence Tests
 def test_document_ingestion_and_retrieval():
@@ -183,6 +190,31 @@ def test_artifact_revision():
     )
     assert revise_resp.status_code == 200
     assert revise_resp.json()["status"] == "GENERATING"
+
+
+def test_artifact_deletion():
+    from app.services.artifact_service import ArtifactService
+    art_id = "ART-DEL-TEST-001"
+    ArtifactService._in_memory_artifacts[art_id] = {
+        "artifact_id": art_id,
+        "transformation_request_id": "TR-001",
+        "cco_version_id": "CCO-001",
+        "type": "presentation",
+        "version": 1,
+        "status": "PASSED",
+        "content_json": {"title": "Delete Me Test"},
+        "verification": {"status": "PASSED", "grounding_score": 1.0},
+    }
+
+    # Delete Artifact
+    del_resp = client.delete(f"/api/v1/artifacts/{art_id}", headers=ANALYST_HEADERS)
+    assert del_resp.status_code == 204
+
+    # Verify Artifact is 404
+    get_resp = client.get(f"/api/v1/artifacts/{art_id}", headers=ANALYST_HEADERS)
+    assert get_resp.status_code == 404
+
+
 
 
 
