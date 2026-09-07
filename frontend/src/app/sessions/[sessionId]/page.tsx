@@ -1,9 +1,10 @@
 "use client";
 
 import React, { use, useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useSessionStore } from "@/store/useSessionStore";
-import { fetchSession, fetchSessionArtifacts, fetchDocumentCCO, fetchDocumentEvidence } from "@/lib/api";
+import { useUIStore } from "@/store/useUIStore";
+import { fetchSession, fetchSessionArtifacts, fetchDocumentCCO, fetchDocumentEvidence, updateSession, deleteSession } from "@/lib/api";
 import SourceViewer from "@/components/source/SourceViewer";
 import CCOViewer from "@/components/cco/CCOViewer";
 import EvidenceViewer from "@/components/evidence/EvidenceViewer";
@@ -29,6 +30,10 @@ import {
   BarChart3,
   Video,
   Share2,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +42,8 @@ export default function SessionWorkspacePage({
 }: {
   params: Promise<{ sessionId: string }>;
 }) {
+  const router = useRouter();
+  const { addToast } = useUIStore();
   const { sessionId } = use(params);
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -50,6 +57,8 @@ export default function SessionWorkspacePage({
     setEvidenceChunks,
     activeTab,
     setActiveTab,
+    updateSessionInList,
+    removeSession,
   } = useSessionStore();
   const [layoutMode, setLayoutMode] = useState<"split" | "tabs">("split");
   const [activeStage, setActiveStage] = useState<"plan" | "artifacts">(
@@ -59,6 +68,71 @@ export default function SessionWorkspacePage({
   const [artifacts, setArtifacts] = useState<any[]>([]);
   const [selectedArtifactIdx, setSelectedArtifactIdx] = useState(0);
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState(true);
+
+  // Session Rename & Delete states
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeletingSession, setIsDeletingSession] = useState(false);
+
+  const handleConfirmRename = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renameValue.trim() || isRenaming) return;
+    try {
+      setIsRenaming(true);
+      await updateSession(sessionId, { name: renameValue.trim() });
+      if (currentSession) {
+        setCurrentSession({ ...currentSession, name: renameValue.trim() });
+      }
+      updateSessionInList({ id: sessionId, name: renameValue.trim() });
+      addToast({
+        type: "success",
+        title: "Session Renamed",
+        message: `Workspace renamed to "${renameValue.trim()}".`,
+      });
+      setRenameModalOpen(false);
+    } catch (err: any) {
+      addToast({
+        type: "error",
+        title: "Rename Failed",
+        message: err.message || "Failed to update session name.",
+      });
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (isDeletingSession) return;
+    try {
+      setIsDeletingSession(true);
+      await deleteSession(sessionId);
+      removeSession(sessionId);
+      addToast({
+        type: "success",
+        title: "Session Deleted",
+        message: `Workspace "${currentSession?.name || sessionId}" was deleted.`,
+      });
+      router.push("/sessions");
+    } catch (err: any) {
+      addToast({
+        type: "error",
+        title: "Delete Failed",
+        message: err.message || "Failed to delete session workspace.",
+      });
+      setIsDeletingSession(false);
+    }
+  };
+
+  const handleArtifactDeleted = (deletedArtId: string) => {
+    setArtifacts((prev) => {
+      const next = prev.filter((a) => (a.artifact_id || a.id) !== deletedArtId);
+      return next;
+    });
+    setSelectedArtifactIdx(0);
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -235,6 +309,7 @@ export default function SessionWorkspacePage({
             selectedArtifactIdx={selectedArtifactIdx}
             onSelectArtifactIdx={setSelectedArtifactIdx}
             onNavigateToArtifact={handleNavigateToArtifact}
+            onDeleteArtifact={handleArtifactDeleted}
           />
         )}
       </div>
@@ -257,9 +332,21 @@ export default function SessionWorkspacePage({
               </span>
             )}
           </div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-            {currentSession?.name || "Incident Response & Operational Transformation Workspace"}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+              {currentSession?.name || "Incident Response & Operational Transformation Workspace"}
+            </h1>
+            <button
+              onClick={() => {
+                setRenameValue(currentSession?.name || "");
+                setRenameModalOpen(true);
+              }}
+              className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors cursor-pointer"
+              title="Rename Workspace"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {currentSession?.description ||
               "Cross-platform verified artifacts generated from ingested source document"}
@@ -268,6 +355,15 @@ export default function SessionWorkspacePage({
 
         {/* Stage & Layout Controls */}
         <div className="flex items-center gap-3 flex-wrap">
+          {/* Delete Workspace Button */}
+          <button
+            onClick={() => setDeleteModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 text-xs font-semibold transition-colors cursor-pointer"
+            title="Delete Session Workspace"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Delete Workspace</span>
+          </button>
           {/* Stage Switcher: Plan Outputs vs. View Artifacts */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
             <button
@@ -539,6 +635,113 @@ export default function SessionWorkspacePage({
             {activeTab === "evidence" && <EvidenceViewer />}
             {activeTab === "transform" && <TransformationPlanner sessionId={sessionId} />}
             {activeTab === "provenance" && <ProvenanceTimeline />}
+          </div>
+        </div>
+      )}
+
+      {/* Rename Workspace Modal */}
+      {renameModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in-50 zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                  <Pencil className="h-4 w-4" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Rename Workspace</h3>
+              </div>
+              <button
+                onClick={() => setRenameModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmRename} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Workspace Title</label>
+                <input
+                  type="text"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  placeholder="Enter workspace name..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/80 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRenameModalOpen(false)}
+                  disabled={isRenaming}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRenaming || !renameValue.trim()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  {isRenaming ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Workspace Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in-50 zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 shrink-0">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Delete Session Workspace?</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Are you sure you want to delete <strong className="text-slate-900 dark:text-white font-semibold">&ldquo;{currentSession?.name || sessionId}&rdquo;</strong>? This will permanently remove the workspace, its documents, and all generated artifacts.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={isDeletingSession}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeletingSession}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+              >
+                {isDeletingSession ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5" /> Delete Workspace
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

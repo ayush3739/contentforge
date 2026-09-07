@@ -459,3 +459,36 @@ class ArtifactService:
             "notes": payload.notes,
             "provenance": {"status": "PENDING", "reference": provenance.id}
         }
+
+    async def delete_artifact(self, artifact_id: str, user_id: str, role: Optional[str] = None) -> bool:
+        """
+        Deletes an artifact, associated binary from object storage, and audit logs the event.
+        """
+        self.assert_owner(artifact_id, user_id, role=role)
+        if self.db:
+            try:
+                db_art = self.db.query(Artifact).filter(Artifact.id == artifact_id).first()
+                if db_art:
+                    if db_art.storage_key:
+                        try:
+                            await self.storage.delete_object(db_art.storage_key)
+                        except Exception as e:
+                            logger.warning(f"Failed to delete artifact binary file for {artifact_id}: {e}")
+                    self.db.delete(db_art)
+                    self.db.commit()
+            except Exception as e:
+                logger.error(f"[ARTIFACT] Database deletion failed for artifact {artifact_id}: {e}")
+                if self.db:
+                    self.db.rollback()
+                raise
+        if artifact_id in self._in_memory_artifacts:
+            del self._in_memory_artifacts[artifact_id]
+        record_audit_event(
+            self.db,
+            user_id=user_id,
+            action="ARTIFACT_DELETED",
+            resource_type="artifact",
+            resource_id=artifact_id,
+        )
+        return True
+

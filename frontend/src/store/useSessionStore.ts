@@ -18,6 +18,8 @@ interface SessionStoreState {
   setCurrentSession: (session: SessionItem | null) => void;
   setSessionsList: (sessions: SessionItem[]) => void;
   addSession: (session: SessionItem) => void;
+  removeSession: (sessionId: string) => void;
+  updateSessionInList: (session: Partial<SessionItem> & { id: string }) => void;
   fetchSessionsList: (forceRefresh?: boolean) => Promise<void>;
   setDocuments: (docs: DocumentItem[]) => void;
   setCurrentCCO: (cco: CCOData | null) => void;
@@ -44,6 +46,14 @@ export const useSessionStore = create<SessionStoreState>()(
       addSession: (session) => set((state) => ({
         sessionsList: [session, ...state.sessionsList.filter((s) => s.id !== session.id)],
         hasLoadedSessions: true,
+      })),
+      removeSession: (sessionId) => set((state) => ({
+        sessionsList: state.sessionsList.filter((s) => s.id !== sessionId),
+        currentSession: state.currentSession?.id === sessionId ? null : state.currentSession,
+      })),
+      updateSessionInList: (updated) => set((state) => ({
+        sessionsList: state.sessionsList.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)),
+        currentSession: state.currentSession?.id === updated.id ? { ...state.currentSession, ...updated } : state.currentSession,
       })),
 
       fetchSessionsList: async (forceRefresh = false) => {

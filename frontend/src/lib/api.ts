@@ -117,6 +117,33 @@ export async function fetchSession(sessionId: string): Promise<SessionItem> {
   return res.json();
 }
 
+export async function updateSession(
+  sessionId: string,
+  data: { name?: string; status?: string }
+): Promise<SessionItem> {
+  const res = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
+    method: "PATCH",
+    headers: await getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || err.detail || "Failed to update session");
+  }
+  return res.json();
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
+    method: "DELETE",
+    headers: await getHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || err.detail || "Failed to delete session");
+  }
+}
+
 export async function uploadDocument(
   sessionId: string,
   file: File,
@@ -220,6 +247,17 @@ export async function fetchArtifacts(sessionId?: string): Promise<any[]> {
     return res.json();
   } catch {
     return [];
+  }
+}
+
+export async function deleteArtifact(artifactId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/artifacts/${artifactId}`, {
+    method: "DELETE",
+    headers: await getHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || err.detail || "Failed to delete artifact");
   }
 }
 

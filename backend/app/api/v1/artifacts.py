@@ -179,3 +179,20 @@ async def finalize_artifact(
     """
     service = ArtifactService(db=db)
     return service.finalize_artifact(id, payload, user_id=user.user_id)
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_artifact(
+    id: str,
+    user: ClerkUserPayload = Depends(require_user()),
+    db: Optional[DBSession] = Depends(get_db),
+):
+    """
+    Deletes an artifact, removes its binary from object storage, and audit logs the action.
+    """
+    service = ArtifactService(db=db)
+    success = await service.delete_artifact(id, user_id=user.user_id, role=user.role)
+    if not success:
+        raise APIError("ARTIFACT_NOT_FOUND", f"Artifact with ID '{id}' does not exist.", status_code=404)
+    return None
+

@@ -231,6 +231,9 @@ class SessionService:
                     if role != "admin" and db_session.created_by and db_session.created_by != user_id:
                         from app.core.errors import APIError
                         raise APIError("FORBIDDEN", "You do not own this session.", status_code=403)
+                    # Clean up related jobs
+                    from app.models.transformation import Job
+                    self.db.query(Job).filter(Job.session_id == session_id).delete(synchronize_session=False)
                     self.db.delete(db_session)
                     self.db.commit()
             except Exception as e:
@@ -238,6 +241,8 @@ class SessionService:
                     raise
                 if self.db:
                     self.db.rollback()
+                logger.error(f"[SESSION] Database deletion failed for session {session_id}: {e}")
+                raise
         if session_id in self._in_memory_sessions:
             del self._in_memory_sessions[session_id]
         record_audit_event(self.db, user_id=user_id, action="SESSION_DELETED", resource_type="session", resource_id=session_id)
