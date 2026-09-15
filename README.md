@@ -265,7 +265,7 @@ npm run build
 1. **Zero Raw Ledger Bloat:** Raw files remain off-chain in object storage; only **SHA-256 hashes** and verification metadata are committed to audit ledgers.
 2. **Untrusted Upload Sanitization:** Source uploads are treated as hostile, untrusted inputs. Prompt injection boundaries isolate user text from LLM system instructions.
 3. **Fail-Closed Multi-Tenancy:** Backend endpoints validate user tenancy and enforce RBAC on every API request.
-4. **Git Hygiene:** Local storage directories (`storage_data/`, `data/`) and credentials (`.env`) are strictly excluded from source control.
+4. **Git Hygiene:** Local storage directories (`storage_data/`, `data/`) and credentials (`.env`) are strictly excluded from source control also we have secured all the data's
 
 ---
 
